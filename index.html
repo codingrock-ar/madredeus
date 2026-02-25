@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMD - Sistema de Gestión 2.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+        }
+        
+        /* Sidebar Styling */
+        .sidebar {
+            width: 260px;
+            background: #0f172a; /* Azul oscuro moderno */
+            min-height: 100vh;
+            color: #fff;
+            position: fixed;
+            transition: all 0.3s;
+        }
+        .brand {
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .nav-link {
+            color: #94a3b8;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+            border-right: 3px solid #3b82f6;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        /* Cards & Tables */
+        .card-modern {
+            background: #fff;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #e2e8f0;
+        }
+
+        /* Badges */
+        .badge-soft-success { background-color: #dcfce7; color: #166534; }
+        .badge-soft-danger { background-color: #fee2e2; color: #991b1b; }
+        .badge-soft-warning { background-color: #fef3c7; color: #92400e; }
+
+        /* Form Styling */
+        .form-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            padding: 10px 15px;
+        }
+        .form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Tabs Personalizados */
+        .nav-tabs .nav-link {
+            border: none;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #3b82f6;
+            border-bottom: 2px solid #3b82f6;
+            background: transparent;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="app">
+    
+    <div class="sidebar d-none d-md-block">
+        <div class="brand d-flex align-items-center gap-2">
+            <i class="ph ph-graduation-cap fs-3"></i>
+            IMD Gestión
+        </div>
+        <nav class="mt-4">
+            <a href="#" class="nav-link" @click="view = 'dashboard'">
+                <i class="ph ph-squares-four"></i> Dashboard
+            </a>
+            <a href="#" class="nav-link" :class="{ active: view === 'list' || view === 'form' }" @click="view = 'list'">
+                <i class="ph ph-users"></i> Estudiantes
+            </a>
+            <a href="#" class="nav-link">
+                <i class="ph ph-chalkboard-teacher"></i> Profesores
+            </a>
+            <a href="#" class="nav-link">
+                <i class="ph ph-books"></i> Materias
+            </a>
+            <a href="#" class="nav-link">
+                <i class="ph ph-gear"></i> Configuración
+            </a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        
+        <header class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold mb-0" v-if="view === 'list'">Listado de Estudiantes</h4>
+                <h4 class="fw-bold mb-0" v-if="view === 'form'">Editar Estudiante</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0 text-muted fs-7" style="font-size: 0.85rem;">
+                        <li class="breadcrumb-item">Inicio</li>
+                        <li class="breadcrumb-item">Estudiantes</li>
+                        <li class="breadcrumb-item active" aria-current="page">{{ view === 'form' ? 'Editar' : 'Base de Datos' }}</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded shadow-sm">
+                    <div class="avatar-circle d-flex justify-content-center align-items-center text-primary fw-bold">NT</div>
+                    <span class="small fw-bold">Nora Tizzone</span>
+                </div>
+            </div>
+        </header>
+
+        <div v-if="view === 'list'" class="fade-in">
+            <div class="card-modern p-4">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="ph ph-magnifying-glass"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Buscar por Apellido, DNI...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select">
+                            <option selected>Todas las Carreras</option>
+                            <option>Enfermería Profesional</option>
+                            <option>Radiología</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5 text-end">
+                        <button class="btn btn-primary" @click="abrirNuevo"><i class="ph ph-plus me-1"></i> Nuevo Estudiante</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" width="50">ID</th>
+                                <th scope="col">Estudiante</th>
+                                <th scope="col">Documento</th>
+                                <th scope="col">Carrera / Comisión</th>
+                                <th scope="col">Estado</th>
+                                <th scope="col" class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="student in students" :key="student.id">
+                                <td class="text-muted">#{{ student.id }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img :src="'https://ui-avatars.com/api/?name=' + student.name + '&background=random'" class="avatar-circle">
+                                        <div>
+                                            <div class="fw-bold">{{ student.lastname }}, {{ student.name }}</div>
+                                            <div class="text-muted small">{{ student.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ student.dni }}</td>
+                                <td>
+                                    <div class="fw-semibold">{{ student.career }}</div>
+                                    <div class="small text-muted">Comisión {{ student.commission }} - {{ student.shift }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill" 
+                                          :class="{'badge-soft-success': student.status === 'En Curso', 'badge-soft-danger': student.status === 'Abandono'}">
+                                        {{ student.status }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light border" type="button" @click="editStudent(student)">
+                                            <i class="ph ph-pencil-simple"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light border ms-1">
+                                            <i class="ph ph-file-text"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <nav class="d-flex justify-content-center mt-3">
+                    <ul class="pagination pagination-sm">
+                        <li class="page-item disabled"><a class="page-link" href="#">Anterior</a></li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <div v-if="view === 'form'" class="fade-in">
+            
+            <div class="row">
+                <div class="col-md-3 mb-4">
+                    <div class="card-modern p-4 text-center h-100">
+                        <div class="position-relative d-inline-block mb-3">
+                            <img src="https://ui-avatars.com/api/?name=Dora+Pedraza&size=128" class="rounded-circle shadow-sm" style="width: 120px; height: 120px;">
+                            <button class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle p-2" title="Cambiar Foto">
+                                <i class="ph ph-camera"></i>
+                            </button>
+                        </div>
+                        <h5 class="fw-bold">{{ currentStudent.lastname }}, {{ currentStudent.name }}</h5>
+                        <p class="text-muted small">ID: {{ currentStudent.id }}</p>
+                        
+                        <hr>
+                        <div class="text-start small">
+                            <p class="mb-1"><strong>DNI:</strong> {{ currentStudent.dni }}</p>
+                            <p class="mb-1"><strong>Estado:</strong> <span class="text-danger fw-bold">{{ currentStudent.status }}</span></p>
+                            <p class="mb-1"><strong>Inscripción:</strong> 29/12/2023</p>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button class="btn btn-outline-primary btn-sm"><i class="ph ph-printer me-2"></i>Imprimir Ficha</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click="view = 'list'"><i class="ph ph-arrow-left me-2"></i>Volver</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-9">
+                    <div class="card-modern p-4">
+                        
+                        <ul class="nav nav-tabs mb-4" id="studentTabs">
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: tab === 'personal'}" href="#" @click.prevent="tab = 'personal'">Datos Personales</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: tab === 'academic'}" href="#" @click.prevent="tab = 'academic'">Académico</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: tab === 'docs'}" href="#" @click.prevent="tab = 'docs'">Documentación</a>
+                            </li>
+                             <li class="nav-item">
+                                <a class="nav-link" :class="{active: tab === 'notes'}" href="#" @click.prevent="tab = 'notes'">Observaciones</a>
+                            </li>
+                        </ul>
+
+                        <form>
+                            <div v-if="tab === 'personal'">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nombre</label>
+                                        <input type="text" class="form-control" v-model="currentStudent.name">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Apellido</label>
+                                        <input type="text" class="form-control" v-model="currentStudent.lastname">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">DNI</label>
+                                        <input type="text" class="form-control" v-model="currentStudent.dni">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Fecha Nacimiento</label>
+                                        <input type="date" class="form-control" value="1995-02-18">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Nacionalidad</label>
+                                        <select class="form-select">
+                                            <option>Argentina</option>
+                                            <option selected>Perú</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-12"><hr class="text-muted my-2"></div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" placeholder="alumno@email.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Teléfono Móvil</label>
+                                        <input type="tel" class="form-control" value="1122734789">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Domicilio</label>
+                                        <input type="text" class="form-control" placeholder="Calle y número">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Localidad</label>
+                                        <input type="text" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="tab === 'academic'">
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info d-flex align-items-center" role="alert">
+                                            <i class="ph ph-info me-2 fs-5"></i>
+                                            <div>El estudiante está en condición de <strong>Abandono</strong> desde Marzo 2024.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Carrera</label>
+                                        <select class="form-select" v-model="currentStudent.career">
+                                            <option>Enfermería Profesional</option>
+                                            <option>Radiología</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Ciclo Lectivo</label>
+                                        <select class="form-select">
+                                            <option>2024</option>
+                                            <option>2025</option>
+                                            <option>2026</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Periodo</label>
+                                        <select class="form-select">
+                                            <option>1</option>
+                                            <option>2</option>
+                                            <option selected>3</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Comisión</label>
+                                        <select class="form-select">
+                                            <option>A</option>
+                                            <option selected>B</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Turno</label>
+                                        <select class="form-select">
+                                            <option selected>TM (Mañana)</option>
+                                            <option>TN (Noche)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Estado</label>
+                                        <select class="form-select border-danger text-danger fw-bold" v-model="currentStudent.status">
+                                            <option value="En Curso">En Curso</option>
+                                            <option value="Abandono">Abandono</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="tab === 'docs'">
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <h6 class="fw-bold mb-3 text-primary">Requisitos de Ingreso</h6>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="doc1" checked>
+                                            <label class="form-check-label" for="doc1">Fotocopia DNI</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="doc2" checked>
+                                            <label class="form-check-label" for="doc2">Título Secundario / Polimodal</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="doc3">
+                                            <label class="form-check-label" for="doc3">Apto Psicofísico</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="doc4">
+                                            <label class="form-check-label" for="doc4">Certificado Vacunas</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="fw-bold mb-3 text-primary">Medio de Captación</h6>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="medio" id="m1">
+                                            <label class="form-check-label" for="m1">Redes Sociales</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="medio" id="m2" checked>
+                                            <label class="form-check-label" for="m2">Recomendación</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div v-if="tab === 'notes'">
+                                <label class="form-label">Historial y Notas Administrativas</label>
+                                <textarea class="form-control" rows="8" style="background-color: #fffbeb; border-color: #fcd34d;">Marzo 2024: Abandona por temas laborales.
+Marzo 2025:
+27/2/25 REGISTRO NOTAS HASTA JULIO 2024.
+SE REINSCRIBE EN 1ºB PARA HACER SOLAMENTE CUIDADOS Y MODELOS BIOLOGIA SUJETO Y P.AUXILIOS.
+5/5/25 entrego libreta de calif. - Abona Junio25.
+                                </textarea>
+                                <div class="form-text">Este campo es visible solo para administración.</div>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-top text-end">
+                                <button type="button" class="btn btn-light me-2" @click="view = 'list'">Cancelar</button>
+                                <button type="button" class="btn btn-primary px-4">Guardar Cambios</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+    const { createApp } = Vue
+
+    createApp({
+        data() {
+            return {
+                view: 'list', // 'list' o 'form'
+                tab: 'personal',
+                students: [
+                    { id: 280937, name: 'Dora', lastname: 'Pedraza Macedo', dni: '94667680', career: 'Enfermería Profesional', commission: 'B', shift: 'TM', status: 'Abandono', email: 'dora.pedraza@mail.com' },
+                    { id: 671768, name: 'Nayla Rocio', lastname: 'Raynaldes', dni: '41235880', career: 'Enfermería Laferrere', commission: 'A', shift: 'TN', status: 'En Curso', email: 'nayla.ray@mail.com' },
+                    { id: 671767, name: 'Kiara Alexandra', lastname: 'Moya', dni: '45128820', career: 'Enfermería Laferrere', commission: 'A', shift: 'TN', status: 'En Curso', email: 'kiara.m@mail.com' },
+                    { id: 671765, name: 'Antonella Aylen', lastname: 'De Jesus', dni: '45751406', career: 'Técnico en Radiología', commission: 'A', shift: 'TM', status: 'En Curso', email: 'anto.dj@mail.com' },
+                ],
+                currentStudent: {}
+            }
+        },
+        methods: {
+            editStudent(student) {
+                // Clonamos el objeto para no modificar la lista directamente en el demo
+                this.currentStudent = { ...student }; 
+                this.tab = 'personal'; // Resetear tab
+                this.view = 'form';
+            },
+            abrirNuevo() {
+                this.currentStudent = { name: '', lastname: '', status: 'En Curso' };
+                this.tab = 'personal';
+                this.view = 'form';
+            }
+        }
+    }).mount('#app')
+</script>
+
+</body>
+</html>
