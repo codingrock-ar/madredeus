@@ -58,7 +58,7 @@ export default {
         async fetchTeacher(id) {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/teachers/' + id, {
+                const response = await fetch(window.API_BASE + '/api/teachers/' + id, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 

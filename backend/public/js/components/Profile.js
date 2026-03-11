@@ -82,7 +82,7 @@ export default {
             this.loading = true;
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/profile', {
+                const response = await fetch(window.API_BASE + '/api/profile', {
                     method: 'PUT',
                     headers: { 
                         'Authorization': `Bearer ${token}`,

@@ -53,7 +53,7 @@ export default {
             this.error = '';
             this.loading = true;
             try {
-                const response = await fetch('/api/login', {
+                const response = await fetch(window.API_BASE + '/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: this.email, password: this.password })

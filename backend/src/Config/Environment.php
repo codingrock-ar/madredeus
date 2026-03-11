@@ -4,15 +4,15 @@ namespace App\Config;
 
 class Environment {
     
-    // Configuración para entorno de desarrollo local (Docker)
+    // Configuración para entorno de desarrollo local
     private static $dev = [
         'APP_ENV' => 'development',
         'APP_DEBUG' => true,
         'DB_TYPE' => 'mysql',
-        'DB_HOST' => 'db', // Nombre del servicio en docker-compose
+        'DB_HOST' => '127.0.0.1', 
         'DB_NAME' => 'madredeus_db',
-        'DB_USER' => 'root',
-        'DB_PASS' => 'secret'
+        'DB_USER' => 'madredeus_app',
+        'DB_PASS' => '1md1234'
     ];
 
     // Configuración para entorno de producción (Hosting Compartido)
@@ -31,8 +31,6 @@ class Environment {
      * En hosting compartido puedes forzar 'production' aquí mismo devolviendo self::$prod
      */
     public static function get() {
-        // Para local (docker) usamos dev.
-        // Si subes esto al hosting, simplemente cambias el return a self::$prod;
         return self::$dev;
     }
 }

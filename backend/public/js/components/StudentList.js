@@ -157,7 +157,7 @@ export default {
         async fetchStudents() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/students', {
+                const response = await fetch(window.API_BASE + '/api/students', {
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
                 });
                 if (response.status === 401) return this.$router.push('/login');
@@ -174,7 +174,7 @@ export default {
         async fetchCareers() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/careers', {
+                const response = await fetch(window.API_BASE + '/api/careers', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -190,7 +190,7 @@ export default {
             
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/students/' + id, {
+                const response = await fetch(window.API_BASE + '/api/students/' + id, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
