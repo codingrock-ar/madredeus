@@ -94,7 +94,7 @@ export default {
         async fetchData() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/subjects', {
+                const response = await fetch(window.API_BASE + '/api/subjects', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.status === 401) return this.$router.push('/login');
@@ -107,7 +107,7 @@ export default {
             
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/subjects/' + id, {
+                const response = await fetch(window.API_BASE + '/api/subjects/' + id, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

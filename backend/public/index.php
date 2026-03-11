@@ -6,6 +6,8 @@ use Slim\Factory\AppFactory;
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = AppFactory::create();
+// Si desplegado bajo /madredeus, ajustar la base path para rutas API
+$app->setBasePath('/madredeus');
 
 // Middleware de enrutamiento
 $app->addRoutingMiddleware();
