@@ -8,6 +8,7 @@ class Environment {
     private static $dev = [
         'APP_ENV' => 'development',
         'APP_DEBUG' => true,
+        'APP_BASE_PATH' => '',
         'DB_TYPE' => 'mysql',
         'DB_HOST' => '127.0.0.1', 
         'DB_NAME' => 'madredeus_db',
@@ -27,10 +28,19 @@ class Environment {
     ];
 
     /**
-     * Retorna la configuración basada en una variable de entorno o archivo
-     * En hosting compartido puedes forzar 'production' aquí mismo devolviendo self::$prod
+     * Retorna la configuración basada en un archivo local o predeterminados
      */
     public static function get() {
-        return self::$dev;
+        $config = self::$dev;
+        
+        $localConfigFile = __DIR__ . '/config.php';
+        if (file_exists($localConfigFile)) {
+            $localConfig = require $localConfigFile;
+            if (is_array($localConfig)) {
+                $config = array_merge($config, $localConfig);
+            }
+        }
+
+        return $config;
     }
 }

@@ -6,8 +6,13 @@ use Slim\Factory\AppFactory;
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = AppFactory::create();
-// Si desplegado bajo /madredeus, ajustar la base path para rutas API
-$app->setBasePath('/madredeus');
+
+$config = \App\Config\Environment::get();
+$basePath = $config['APP_BASE_PATH'] ?? '';
+
+if (!empty($basePath)) {
+    $app->setBasePath($basePath);
+}
 
 // Middleware de enrutamiento
 $app->addRoutingMiddleware();
@@ -32,11 +37,15 @@ $app->add(function ($request, $handler) {
 $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     // Al no tener un contenedor DI complejo en este script simple,
     // llamamos directamente a los métodos del controlador
-    $group->get('/students', \App\Controllers\StudentController::class . ':index');
-    $group->get('/students/{id}', \App\Controllers\StudentController::class . ':show');
-    $group->post('/students', \App\Controllers\StudentController::class . ':create');
-    $group->put('/students/{id}', \App\Controllers\StudentController::class . ':update');
-    $group->delete('/students/{id}', \App\Controllers\StudentController::class . ':delete');
+    $group->group('/students', function (\Slim\Routing\RouteCollectorProxy $studentGroup) {
+        $studentGroup->get('', \App\Controllers\StudentController::class . ':index');
+        $studentGroup->get('/autocomplete', \App\Controllers\StudentController::class . ':autocomplete');
+        $studentGroup->get('/{id}', \App\Controllers\StudentController::class . ':show');
+        $studentGroup->post('', \App\Controllers\StudentController::class . ':create');
+        $studentGroup->post('/bulk-commission', \App\Controllers\StudentController::class . ':bulkUpdateCommission');
+        $studentGroup->put('/{id}', \App\Controllers\StudentController::class . ':update');
+        $studentGroup->delete('/{id}', \App\Controllers\StudentController::class . ':delete');
+    });
     
     $group->get('/teachers', \App\Controllers\TeacherController::class . ':index');
     $group->get('/teachers/{id}', \App\Controllers\TeacherController::class . ':show');
@@ -61,6 +70,9 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->post('/logout', \App\Controllers\AuthController::class . ':logout');
     $group->post('/recover-password', \App\Controllers\AuthController::class . ':recoverPassword');
     $group->put('/profile', \App\Controllers\AuthController::class . ':updateProfile');
+
+    // Metadata
+    $group->get('/metadata/student-types', \App\Controllers\MetadataController::class . ':getStudentTypes');
 });
 
 // Ruta por defecto: Cargar la SPA (Frontend)

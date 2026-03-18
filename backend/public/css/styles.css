@@ -19,6 +19,7 @@ body {
     font-size: 1.2rem;
     font-weight: 700;
     border-bottom: 1px solid rgba(255,255,255,0.1);
+    background-color: #fff;
 }
 .nav-link {
     color: #94a3b8;
@@ -33,6 +34,66 @@ body {
     color: #fff;
     background: rgba(255,255,255,0.05);
     border-right: 3px solid #3b82f6;
+}
+
+.submenu-link {
+    font-size: 0.85rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    opacity: 0.8;
+}
+
+.submenu-link:hover {
+    opacity: 1;
+}
+
+.text-muted-sidebar {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Collapsible Sidebar Menu */
+.sidebar [data-bs-toggle="collapse"] {
+    position: relative;
+}
+
+.sidebar [data-bs-toggle="collapse"]::after {
+    display: inline-block;
+    margin-left: auto;
+    vertical-align: 0.255em;
+    content: "";
+    border-top: 0.3em solid;
+    border-right: 0.3em solid transparent;
+    border-bottom: 0;
+    border-left: 0.3em solid transparent;
+    transition: transform 0.2s ease-in-out;
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    margin-top: -0.15rem;
+}
+
+.sidebar [data-bs-toggle="collapse"].collapsed::after {
+    transform: rotate(-90deg);
+}
+
+.nav-item-container {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.nav-item-container.collapsed {
+    max-height: 0;
+}
+
+.nav-item-container:not(.collapsed) {
+    max-height: 500px;
+    transition: max-height 0.5s ease-in;
+}
+
+.sidebar .nav-link i {
+    width: 20px;
+    margin-right: 10px;
+    text-align: center;
 }
 
 /* Main Content */
@@ -190,4 +251,102 @@ body {
 }
 .btn-login:active {
     transform: scale(0.98);
+}
+
+/* Autocomplete */
+.autocomplete-dropdown {
+    z-index: 1050;
+    max-height: 250px;
+    overflow-y: auto;
+}
+.suggestion-item:hover, .suggestion-item.bg-light {
+    background-color: #f8fafc !important;
+    color: #3b82f6;
+}
+.extra-small {
+    font-size: 0.75rem;
+}
+.pointer {
+    cursor: pointer;
+}
+
+/* Print Styles */
+@media print {
+    /* Hide non-essential UI */
+    .sidebar, 
+    .main-content header, 
+    .nav-tabs, 
+    .btn, 
+    .breadcrumb, 
+    .input-group, 
+    .pagination, 
+    .text-end button,
+    #studentTabs,
+    .mt-4.pt-3.border-top.text-end {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
+    .card-modern {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+        padding: 0 !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 12pt;
+    }
+
+    .fade-in {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+
+    /* Force all tabs to show */
+    div[v-show*="isPrinting"] {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    /* Preserve Grid for printing */
+    .row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        margin-right: -15px !important;
+        margin-left: -15px !important;
+    }
+
+    .col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6, 
+    .col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+        position: relative !important;
+        width: 100% !important;
+        padding-right: 15px !important;
+        padding-left: 15px !important;
+    }
+
+    /* Adjust widths for print (standard A4) */
+    .col-md-6 { flex: 0 0 50% !important; max-width: 50% !important; }
+    .col-md-4 { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; }
+    .col-md-8 { flex: 0 0 66.666667% !important; max-width: 66.666667% !important; }
+    .col-md-3 { flex: 0 0 25% !important; max-width: 25% !important; }
+    .col-md-9 { flex: 0 0 75% !important; max-width: 75% !important; }
+
+    .border-top {
+        border-top: 1px solid #dee2e6 !important;
+        margin-top: 20px !important;
+        padding-top: 10px !important;
+    }
+
+    h6 {
+        background-color: #f8fafc !important;
+        padding: 5px 10px !important;
+        border-left: 4px solid #3b82f6 !important;
+        margin-top: 20px !important;
+    }
 }

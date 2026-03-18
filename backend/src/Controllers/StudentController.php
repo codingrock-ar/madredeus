@@ -19,14 +19,50 @@ class StudentController {
     }
 
     public function index(Request $request, Response $response, $args) {
-        $students = $this->repository->getAll();
+        $queryParams = $request->getQueryParams();
         
+        $params = [
+            'search' => $queryParams['search'] ?? null,
+            'career' => $queryParams['career'] ?? null,
+            'page' => $queryParams['page'] ?? 1,
+            'per_page' => $queryParams['per_page'] ?? 10
+        ];
+
+        $result = $this->repository->getPaginated($params);
+        
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'data' => $result['data'],
+            'meta' => [
+                'total' => $result['total'],
+                'page' => $result['page'],
+                'per_page' => $result['per_page'],
+                'total_pages' => $result['total_pages']
+            ]
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function autocomplete(Request $request, Response $response, $args) {
+        $queryParams = $request->getQueryParams();
+        $term = $queryParams['q'] ?? '';
+
+        if (strlen($term) < 3) {
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'data' => []
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $students = $this->repository->searchSimple($term);
+
         $response->getBody()->write(json_encode([
             'status' => 'success',
             'data' => $students
         ]));
-        
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function show(Request $request, Response $response, $args) {
@@ -95,6 +131,27 @@ class StudentController {
         }
         
         $response->getBody()->write(json_encode(['error' => 'Error al eliminar estudiante o no encontrado']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+
+    public function bulkUpdateCommission(Request $request, Response $response, $args) {
+        $data = json_decode((string)$request->getBody(), true);
+        $ids = $data['ids'] ?? [];
+        $commission = $data['commission'] ?? '';
+
+        if (empty($ids) || empty($commission)) {
+            $response->getBody()->write(json_encode(['error' => 'Faltan IDs o comisión de destino']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $success = $this->repository->updateCommissionBulk($ids, $commission);
+
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Comisiones actualizadas correctamente']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
+
+        $response->getBody()->write(json_encode(['error' => 'Error al actualizar comisiones']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
 }

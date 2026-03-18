@@ -12,22 +12,54 @@ export default {
                     <i class="ph ph-x fs-4"></i>
                 </button>
             </div>
-            <nav class="mt-4">
+            <nav class="mt-4 flex-grow-1 overflow-auto">
                 <router-link to="/dashboard" class="nav-link" active-class="active">
                     <i class="ph ph-squares-four"></i> Dashboard
                 </router-link>
-                <router-link to="/students" class="nav-link" active-class="active" :class="{ active: $route.path.includes('/student') }">
-                    <i class="ph ph-users"></i> Estudiantes
-                </router-link>
-                <router-link to="/teachers" class="nav-link" active-class="active">
-                    <i class="ph ph-chalkboard-teacher"></i> Profesores
-                </router-link>
-                <router-link to="/careers" class="nav-link" active-class="active">
-                    <i class="ph ph-student"></i> Carreras
-                </router-link>
-                <router-link to="/subjects" class="nav-link" active-class="active">
-                    <i class="ph ph-books"></i> Materias
-                </router-link>
+
+                <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
+                     style="letter-spacing: 1px; font-size: 0.7rem;"
+                     @click="toggleMenu('alumnos')">
+                    Gestión de Alumnos
+                    <i class="ph" :class="activeMenus.alumnos ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                </div>
+                
+                <div v-show="activeMenus.alumnos" class="fade-in">
+                    <router-link to="/students" class="nav-link" active-class="active" :class="{ active: $route.path === '/students' || $route.path === '/student/form' }">
+                        <i class="ph ph-users"></i> Listado de Alumnos
+                    </router-link>
+                    <router-link to="/students/inscription" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-identification-card"></i> Inscripción
+                    </router-link>
+                    <router-link to="/students/commission" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-users-three"></i> Comisiones
+                    </router-link>
+                    <router-link to="/students/sinigep" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-list-numbers"></i> Sinigep
+                    </router-link>
+                    <router-link to="/students/promotion" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-fast-forward"></i> Promoción
+                    </router-link>
+                </div>
+
+                <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
+                     style="letter-spacing: 1px; font-size: 0.7rem;"
+                     @click="toggleMenu('academico')">
+                    Académico y Staff
+                    <i class="ph" :class="activeMenus.academico ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                </div>
+                
+                <div v-show="activeMenus.academico" class="fade-in">
+                    <router-link to="/teachers" class="nav-link" active-class="active">
+                        <i class="ph ph-chalkboard-teacher"></i> Profesores
+                    </router-link>
+                    <router-link to="/careers" class="nav-link" active-class="active">
+                        <i class="ph ph-graduation-cap"></i> Carreras
+                    </router-link>
+                    <router-link to="/subjects" class="nav-link" active-class="active">
+                        <i class="ph ph-books"></i> Materias
+                    </router-link>
+                </div>
             </nav>
         </div>
 
@@ -70,7 +102,11 @@ export default {
     data() {
         return {
             isSidebarOpen: false,
-            user: null
+            user: null,
+            activeMenus: {
+                alumnos: true,
+                academico: true
+            }
         }
     },
     mounted() {
@@ -82,6 +118,9 @@ export default {
     methods: {
         toggleSidebar() {
             this.isSidebarOpen = !this.isSidebarOpen;
+        },
+        toggleMenu(menu) {
+            this.activeMenus[menu] = !this.activeMenus[menu];
         },
         logout() {
             localStorage.removeItem('token');
