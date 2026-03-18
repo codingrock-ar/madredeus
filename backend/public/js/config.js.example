@@ -1,0 +1,6 @@
+// MadreDeus Frontend Configuration Template
+// Copy this file to config.js and adjust values
+
+window.API_BASE = "http://localhost:8080";
+// If the backend has a base path (e.g. /madredeus), include it here:
+// window.API_BASE = "http://localhost:8080/madredeus";

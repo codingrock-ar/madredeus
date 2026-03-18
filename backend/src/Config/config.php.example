@@ -1,0 +1,14 @@
+<?php
+
+// Local configuration for Docker development
+return [
+    'APP_ENV' => 'development',
+    'APP_DEBUG' => true,
+    'APP_BASE_PATH' => '', // Direct root access
+
+    'DB_TYPE' => 'mysql',
+    'DB_HOST' => 'db', 
+    'DB_NAME' => 'madredeus_db',
+    'DB_USER' => 'root',
+    'DB_PASS' => 'secret'
+];

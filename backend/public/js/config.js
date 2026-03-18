@@ -1,2 +1,2 @@
-// MadreDeus API base config injected by OpenClaw
-window.API_BASE = "http://138.36.236.120/madredeus";
+// MadreDeus Base Configuration (Repository)
+window.API_BASE = window.location.origin;
