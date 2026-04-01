@@ -29,7 +29,7 @@ export default {
                     <tbody>
                         <tr v-for="carrera in paginatedCareers" :key="carrera.id">
                             <td>{{ carrera.id }}</td>
-                            <td class="fw-semibold">{{ carrera.title }}</td>
+                            <td class="text-primary fw-semibold" style="text-decoration: underline; cursor: pointer;" @click="$router.push('/career/form?id=' + carrera.id)">{{ carrera.title }}</td>
                             <td>{{ carrera.duration }}</td>
                             <td class="text-muted small">{{ carrera.last_modified }}</td>
                             <td class="text-end">

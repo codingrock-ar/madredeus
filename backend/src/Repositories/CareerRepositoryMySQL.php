@@ -31,25 +31,34 @@ class CareerRepositoryMySQL {
     public function create(array $data) {
         if (!$this->db) return false;
         
-        $sql = "INSERT INTO careers (title, duration) VALUES (:title, :duration)";
+        $sql = "INSERT INTO careers (title, duration, resolution, degree_title, study_plan) 
+                VALUES (:title, :duration, :resolution, :degree_title, :study_plan)";
         $stmt = $this->db->prepare($sql);
         
         return $stmt->execute([
             ':title' => $data['title'] ?? '',
-            ':duration' => $data['duration'] ?? 0
+            ':duration' => (int)($data['duration'] ?? 0),
+            ':resolution' => $data['resolution'] ?? null,
+            ':degree_title' => $data['degree_title'] ?? null,
+            ':study_plan' => $data['study_plan'] ?? null
         ]);
     }
 
     public function update($id, array $data) {
         if (!$this->db) return false;
         
-        $sql = "UPDATE careers SET title = :title, duration = :duration WHERE id = :id";
+        $sql = "UPDATE careers SET title = :title, duration = :duration, 
+                resolution = :resolution, degree_title = :degree_title, study_plan = :study_plan 
+                WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         
         return $stmt->execute([
             ':id' => $id,
             ':title' => $data['title'] ?? '',
-            ':duration' => $data['duration'] ?? 0
+            ':duration' => (int)($data['duration'] ?? 0),
+            ':resolution' => $data['resolution'] ?? null,
+            ':degree_title' => $data['degree_title'] ?? null,
+            ':study_plan' => $data['study_plan'] ?? null
         ]);
     }
 

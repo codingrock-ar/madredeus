@@ -36,8 +36,14 @@ export default {
                         </option>
                     </select>
                 </div>
-                <div class="col-md-5 text-end">
-                    <button class="btn btn-primary shadow-sm" @click="goToForm()">
+                <div class="col-md-5 text-end d-flex justify-content-end gap-2">
+                    <button class="btn btn-outline-danger shadow-sm btn-sm" @click="exportToPdf">
+                        <i class="ph ph-file-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-outline-secondary shadow-sm btn-sm" @click="printList">
+                        <i class="ph ph-printer me-1"></i> Imprimir
+                    </button>
+                    <button class="btn btn-primary shadow-sm btn-sm" @click="goToForm()">
                         <i class="ph ph-plus-circle me-1"></i> Nuevo Estudiante
                     </button>
                 </div>
@@ -296,6 +302,13 @@ export default {
             this.tooltipInstances = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
+        },
+        exportToPdf() {
+            // Utilizamos el print del navegador que permite guardado como PDF
+            window.print();
+        },
+        printList() {
+            window.print();
         },
         destroyTooltips() {
             if (this.tooltipInstances) {

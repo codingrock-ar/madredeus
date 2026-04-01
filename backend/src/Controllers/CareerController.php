@@ -83,4 +83,45 @@ class CareerController {
         $response->getBody()->write(json_encode(['error' => 'Error al eliminar carrera o no encontrada']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
+
+    public function uploadStudyPlan(Request $request, Response $response, $args) {
+        $uploadedFiles = $request->getUploadedFiles();
+        $planFile = $uploadedFiles['study_plan'] ?? null;
+
+        if (!$planFile) {
+            $response->getBody()->write(json_encode(['error' => 'No se recibió ningún archivo']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        if ($planFile->getError() !== UPLOAD_ERR_OK) {
+            $response->getBody()->write(json_encode(['error' => 'Error en la subida del archivo']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $filename = $planFile->getClientFilename();
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        $allowed = ['pdf', 'doc', 'docx', 'txt', 'zip'];
+        
+        if (!in_array(strtolower($extension), $allowed)) {
+            $response->getBody()->write(json_encode(['error' => 'Formato de archivo no permitido']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $newFileName = 'study_plan_' . uniqid() . '.' . $extension;
+        $uploadPath = __DIR__ . '/../../public/uploads/careers/' . $newFileName;
+
+        if (!file_exists(dirname($uploadPath))) {
+            mkdir(dirname($uploadPath), 0777, true);
+        }
+
+        $planFile->moveTo($uploadPath);
+
+        $url = 'uploads/careers/' . $newFileName;
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'url' => $url
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    }
 }

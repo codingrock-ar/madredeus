@@ -14,7 +14,11 @@ class SubjectRepositoryMySQL {
 
     public function getAll() {
         if ($this->db) {
-            $stmt = $this->db->query("SELECT * FROM subjects ORDER BY name ASC");
+            $sql = "SELECT s.*, c.title as career_title 
+                    FROM subjects s 
+                    LEFT JOIN careers c ON s.career_id = c.id 
+                    ORDER BY s.name ASC";
+            $stmt = $this->db->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         return [];
@@ -31,25 +35,27 @@ class SubjectRepositoryMySQL {
     public function create(array $data) {
         if (!$this->db) return false;
         
-        $sql = "INSERT INTO subjects (name, program) VALUES (:name, :program)";
+        $sql = "INSERT INTO subjects (name, program, career_id) VALUES (:name, :program, :career_id)";
         $stmt = $this->db->prepare($sql);
         
         return $stmt->execute([
             ':name' => $data['name'] ?? '',
-            ':program' => $data['program'] ?? null
+            ':program' => $data['program'] ?? null,
+            ':career_id' => !empty($data['career_id']) ? (int)$data['career_id'] : null
         ]);
     }
 
     public function update($id, array $data) {
         if (!$this->db) return false;
         
-        $sql = "UPDATE subjects SET name = :name, program = :program WHERE id = :id";
+        $sql = "UPDATE subjects SET name = :name, program = :program, career_id = :career_id WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         
         return $stmt->execute([
             ':id' => $id,
             ':name' => $data['name'] ?? '',
-            ':program' => $data['program'] ?? null
+            ':program' => $data['program'] ?? null,
+            ':career_id' => !empty($data['career_id']) ? (int)$data['career_id'] : null
         ]);
     }
 

@@ -1,0 +1,7 @@
+backend/public/js/config.js
+backend/src/Config/config.php
+backend/public/.htaccess
+.env
+vendor/
+node_modules/
+*.log

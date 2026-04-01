@@ -17,6 +17,8 @@ import PeriodPromotion from './components/PeriodPromotion.js';
 import StudentDetail from './components/StudentDetail.js';
 import StudentGrades from './components/StudentGrades.js';
 import StudentCollect from './components/StudentCollect.js';
+import CycleList from './components/CycleList.js';
+import ScholarshipList from './components/ScholarshipList.js';
 
 const { createApp } = Vue;
 const { createRouter, createWebHashHistory } = VueRouter;
@@ -45,7 +47,9 @@ const routes = [
             { path: 'students/promotion', component: PeriodPromotion, meta: { title: 'Promoción de Periodo' } },
             { path: 'student/detail/:id', component: StudentDetail, meta: { title: 'Detalle de Estudiante' } },
             { path: 'student/grades/:id', component: StudentGrades, meta: { title: 'Calificaciones' } },
-            { path: 'student/collect/:id', component: StudentCollect, meta: { title: 'Cobrar' } }
+            { path: 'student/collect/:id', component: StudentCollect, meta: { title: 'Cobrar' } },
+            { path: 'config/cycles', component: CycleList, meta: { title: 'Ciclos Lectivos' } },
+            { path: 'config/scholarships', component: ScholarshipList, meta: { title: 'Tipos de Beca' } }
         ]
     }
 ];

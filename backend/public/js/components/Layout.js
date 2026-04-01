@@ -5,9 +5,9 @@ export default {
 
         <div class="sidebar" :class="{'show-sidebar': isSidebarOpen}">
             <div class="brand d-flex align-items-center justify-content-between p-3 border-bottom">
-                <div class="d-flex align-items-center w-100 justify-content-center">
+                <router-link to="/dashboard" class="d-flex align-items-center w-100 justify-content-center">
                     <img src="imagenes/LogoMadreDeus.png" alt="Logo Madre Deus" style="max-height: 50px; object-fit: contain;">
-                </div>
+                </router-link>
                 <button class="btn btn-sm btn-link text-white d-md-none p-0 position-absolute end-0 me-3" @click="toggleSidebar">
                     <i class="ph ph-x fs-4"></i>
                 </button>
@@ -17,47 +17,97 @@ export default {
                     <i class="ph ph-squares-four"></i> Dashboard
                 </router-link>
 
+                <!-- Gestión de Alumnos -->
                 <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
                      style="letter-spacing: 1px; font-size: 0.7rem;"
                      @click="toggleMenu('alumnos')">
-                    Gestión de Alumnos
+                    Listado de alumnos
                     <i class="ph" :class="activeMenus.alumnos ? 'ph-caret-up' : 'ph-caret-down'"></i>
                 </div>
                 
                 <div v-show="activeMenus.alumnos" class="fade-in">
-                    <router-link to="/students" class="nav-link" active-class="active" :class="{ active: $route.path === '/students' || $route.path === '/student/form' }">
-                        <i class="ph ph-users"></i> Listado de Alumnos
+                    <router-link to="/students" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-database"></i> Base de datos
                     </router-link>
-                    <router-link to="/students/inscription" class="nav-link ps-4 submenu-link" active-class="active">
-                        <i class="ph ph-identification-card"></i> Inscripción
+                    <router-link to="/student/form" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-plus"></i> Nuevo
                     </router-link>
-                    <router-link to="/students/commission" class="nav-link ps-4 submenu-link" active-class="active">
-                        <i class="ph ph-users-three"></i> Comisiones
+                    <router-link to="/students" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-users"></i> Listado de estudiantes
                     </router-link>
                     <router-link to="/students/sinigep" class="nav-link ps-4 submenu-link" active-class="active">
-                        <i class="ph ph-list-numbers"></i> Sinigep
+                        <i class="ph ph-list-numbers"></i> Listado SINIGEP
+                    </router-link>
+                    <router-link to="/students/inscription" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-identification-card"></i> Inscripción a Carrera
                     </router-link>
                     <router-link to="/students/promotion" class="nav-link ps-4 submenu-link" active-class="active">
-                        <i class="ph ph-fast-forward"></i> Promoción
+                        <i class="ph ph-fast-forward"></i> Promocionar Periodo
+                    </router-link>
+                    <router-link to="/students/commission" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-users-three"></i> Actualizar Comisión
                     </router-link>
                 </div>
 
+                <!-- Profesores -->
                 <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
                      style="letter-spacing: 1px; font-size: 0.7rem;"
-                     @click="toggleMenu('academico')">
-                    Académico y Staff
-                    <i class="ph" :class="activeMenus.academico ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                     @click="toggleMenu('profesores')">
+                    Profesores
+                    <i class="ph" :class="activeMenus.profesores ? 'ph-caret-up' : 'ph-caret-down'"></i>
                 </div>
                 
-                <div v-show="activeMenus.academico" class="fade-in">
-                    <router-link to="/teachers" class="nav-link" active-class="active">
-                        <i class="ph ph-chalkboard-teacher"></i> Profesores
+                <div v-show="activeMenus.profesores" class="fade-in">
+                    <router-link to="/teachers" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-database"></i> Base de datos
                     </router-link>
-                    <router-link to="/careers" class="nav-link" active-class="active">
-                        <i class="ph ph-graduation-cap"></i> Carreras
+                    <router-link to="/teacher/form" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-plus"></i> Nuevo
                     </router-link>
-                    <router-link to="/subjects" class="nav-link" active-class="active">
-                        <i class="ph ph-books"></i> Materias
+                </div>
+
+                <!-- Carreras -->
+                <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
+                     style="letter-spacing: 1px; font-size: 0.7rem;"
+                     @click="toggleMenu('carreras')">
+                    Carreras
+                    <i class="ph" :class="activeMenus.carreras ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                </div>
+                
+                <div v-show="activeMenus.carreras" class="fade-in">
+                    <router-link to="/careers" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-database"></i> Base de datos
+                    </router-link>
+                </div>
+
+                <!-- Materias -->
+                <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
+                     style="letter-spacing: 1px; font-size: 0.7rem;"
+                     @click="toggleMenu('materias')">
+                    Materias
+                    <i class="ph" :class="activeMenus.materias ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                </div>
+                
+                <div v-show="activeMenus.materias" class="fade-in">
+                    <router-link to="/subjects" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-database"></i> Base de datos
+                    </router-link>
+                </div>
+
+                <!-- Configuración -->
+                <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
+                     style="letter-spacing: 1px; font-size: 0.7rem;"
+                     @click="toggleMenu('configuracion')">
+                    Configuración
+                    <i class="ph" :class="activeMenus.configuracion ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                </div>
+                
+                <div v-show="activeMenus.configuracion" class="fade-in">
+                    <router-link to="/config/cycles" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-calendar"></i> Ciclos Lectivos
+                    </router-link>
+                    <router-link to="/config/scholarships" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-student"></i> Tipos de Beca
                     </router-link>
                 </div>
             </nav>
@@ -105,7 +155,10 @@ export default {
             user: null,
             activeMenus: {
                 alumnos: true,
-                academico: true
+                profesores: false,
+                carreras: false,
+                materias: false,
+                configuracion: false
             }
         }
     },
@@ -120,7 +173,13 @@ export default {
             this.isSidebarOpen = !this.isSidebarOpen;
         },
         toggleMenu(menu) {
-            this.activeMenus[menu] = !this.activeMenus[menu];
+            const currentState = this.activeMenus[menu];
+            // Cerrar todos
+            Object.keys(this.activeMenus).forEach(key => {
+                this.activeMenus[key] = false;
+            });
+            // Alternar el actual
+            this.activeMenus[menu] = !currentState;
         },
         logout() {
             localStorage.removeItem('token');

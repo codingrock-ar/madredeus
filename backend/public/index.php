@@ -50,17 +50,20 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->get('/teachers', \App\Controllers\TeacherController::class . ':index');
     $group->get('/teachers/{id}', \App\Controllers\TeacherController::class . ':show');
     $group->post('/teachers', \App\Controllers\TeacherController::class . ':create');
+    $group->post('/teachers/upload-photo', \App\Controllers\TeacherController::class . ':uploadPhoto');
     $group->put('/teachers/{id}', \App\Controllers\TeacherController::class . ':update');
     $group->delete('/teachers/{id}', \App\Controllers\TeacherController::class . ':delete');
     $group->get('/careers', \App\Controllers\CareerController::class . ':index');
     $group->get('/careers/{id}', \App\Controllers\CareerController::class . ':show');
     $group->post('/careers', \App\Controllers\CareerController::class . ':create');
+    $group->post('/careers/upload-plan', \App\Controllers\CareerController::class . ':uploadStudyPlan');
     $group->put('/careers/{id}', \App\Controllers\CareerController::class . ':update');
     $group->delete('/careers/{id}', \App\Controllers\CareerController::class . ':delete');
     
     $group->get('/subjects', \App\Controllers\SubjectController::class . ':index');
     $group->get('/subjects/{id}', \App\Controllers\SubjectController::class . ':show');
     $group->post('/subjects', \App\Controllers\SubjectController::class . ':create');
+    $group->post('/subjects/upload-program', \App\Controllers\SubjectController::class . ':uploadProgram');
     $group->put('/subjects/{id}', \App\Controllers\SubjectController::class . ':update');
     $group->delete('/subjects/{id}', \App\Controllers\SubjectController::class . ':delete');
     
@@ -73,6 +76,18 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
 
     // Metadata
     $group->get('/metadata/student-types', \App\Controllers\MetadataController::class . ':getStudentTypes');
+
+    // Configuración
+    $group->get('/config/cycles', \App\Controllers\AcademicCycleController::class . ':index');
+    $group->post('/config/cycles', \App\Controllers\AcademicCycleController::class . ':create');
+    $group->put('/config/cycles/{id}', \App\Controllers\AcademicCycleController::class . ':update');
+    $group->delete('/config/cycles/{id}', \App\Controllers\AcademicCycleController::class . ':delete');
+    
+    $group->get('/config/scholarships', \App\Controllers\ScholarshipController::class . ':index');
+    $group->post('/config/scholarships', \App\Controllers\ScholarshipController::class . ':create');
+    $group->put('/config/scholarships/{id}', \App\Controllers\ScholarshipController::class . ':update');
+    $group->patch('/config/scholarships/{id}/status', \App\Controllers\ScholarshipController::class . ':toggleStatus');
+    $group->delete('/config/scholarships/{id}', \App\Controllers\ScholarshipController::class . ':delete');
 });
 
 // Ruta por defecto: Cargar la SPA (Frontend)

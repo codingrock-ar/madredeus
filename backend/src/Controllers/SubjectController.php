@@ -83,4 +83,46 @@ class SubjectController {
         $response->getBody()->write(json_encode(['error' => 'Error al eliminar materia o no encontrada']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
+
+    public function uploadProgram(Request $request, Response $response, $args) {
+        $uploadedFiles = $request->getUploadedFiles();
+        $programFile = $uploadedFiles['program'] ?? null;
+
+        if (!$programFile) {
+            $response->getBody()->write(json_encode(['error' => 'No se recibió ningún archivo']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        if ($programFile->getError() !== UPLOAD_ERR_OK) {
+            $response->getBody()->write(json_encode(['error' => 'Error en la subida del archivo']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        // Validar tipo de archivo (opcional, pero recomendado)
+        $filename = $programFile->getClientFilename();
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        $allowed = ['pdf', 'doc', 'docx', 'txt', 'zip'];
+        
+        if (!in_array(strtolower($extension), $allowed)) {
+            $response->getBody()->write(json_encode(['error' => 'Formato de archivo no permitido']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $newFileName = 'program_' . uniqid() . '.' . $extension;
+        $uploadPath = __DIR__ . '/../../public/uploads/subjects/' . $newFileName;
+
+        if (!file_exists(dirname($uploadPath))) {
+            mkdir(dirname($uploadPath), 0777, true);
+        }
+
+        $programFile->moveTo($uploadPath);
+
+        $url = 'uploads/subjects/' . $newFileName;
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'url' => $url
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    }
 }

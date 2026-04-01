@@ -9,8 +9,14 @@ export default {
                         <button class="btn btn-outline-secondary" type="button"><i class="ph ph-magnifying-glass"></i></button>
                     </div>
                 </div>
-                <div class="col-md-6 text-end">
-                    <button class="btn btn-primary shadow-sm" @click="$router.push('/teacher/form')">
+                <div class="col-md-6 text-end d-flex justify-content-end gap-2">
+                    <button class="btn btn-outline-danger shadow-sm btn-sm" @click="exportToPdf">
+                        <i class="ph ph-file-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-outline-secondary shadow-sm btn-sm" @click="printList">
+                        <i class="ph ph-printer me-1"></i> Imprimir
+                    </button>
+                    <button class="btn btn-primary shadow-sm btn-sm" @click="$router.push('/teacher/form')">
                         <i class="ph ph-plus-circle me-1"></i> Nuevo Docente
                     </button>
                 </div>
@@ -30,7 +36,11 @@ export default {
                     <tbody>
                         <tr v-for="prof in paginatedTeachers" :key="prof.id">
                             <td>{{ prof.id }}</td>
-                            <td><img :src="prof.image" class="avatar-circle" style="width:30px; height:30px;"></td>
+                            <td>
+                                <img :src="prof.image || 'https://ui-avatars.com/api/?name=' + prof.name + '+' + prof.lastname + '&size=64'" 
+                                     class="rounded-circle border" 
+                                     style="width:32px; height:32px; object-fit: cover;">
+                            </td>
                             <td>{{ prof.lastname }}</td>
                             <td>{{ prof.name }}</td>
                             <td class="text-muted small">{{ prof.last_modified }}</td>
@@ -117,6 +127,12 @@ export default {
                 console.error("Error al eliminar", error);
                 alert("Error de red");
             }
+        },
+        exportToPdf() {
+            window.print();
+        },
+        printList() {
+            window.print();
         }
     }
 }

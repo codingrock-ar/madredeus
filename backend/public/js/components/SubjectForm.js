@@ -20,19 +20,34 @@ export default {
                             <label class="form-label text-muted small fw-bold">Nombre <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" v-model="subject.name" required placeholder="Ej: Anatomía Funcional">
                         </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">Carrera Asociada <span class="text-danger">*</span></label>
+                            <select class="form-select" v-model="subject.career_id" required>
+                                <option value="">Seleccione una carrera...</option>
+                                <option v-for="career in careers" :key="career.id" :value="career.id">{{ career.title }}</option>
+                            </select>
+                        </div>
+
                         <div class="col-12 mt-4">
-                            <label class="form-label text-muted small fw-bold">URL del Programa (Temario Analítico)</label>
+                            <label class="form-label text-muted small fw-bold">Programa (Archivo PDF/Doc)</label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="ph ph-link"></i></span>
-                                <input type="url" class="form-control" v-model="subject.program" placeholder="https://ejemplo.com/programa.pdf">
+                                <span class="input-group-text"><i class="ph ph-file-pdf"></i></span>
+                                <input type="file" class="form-control" @change="handleFileUpload" accept=".pdf,.doc,.docx,.txt,.zip">
+                                <button v-if="subject.program" type="button" class="btn btn-outline-secondary" @click="viewProgram">
+                                    <i class="ph ph-eye me-1"></i> Ver Actual
+                                </button>
                             </div>
-                            <small class="text-muted mt-1 d-block">Enlace a un Drive, PDF o recurso docente.</small>
+                            <small class="text-muted mt-1 d-block" v-if="uploading">
+                                <span class="spinner-border spinner-border-sm me-1"></span> Subiendo programa...
+                            </small>
+                            <small class="text-muted mt-1 d-block" v-else>Formatos aceptados: PDF, DOC, DOCX, TXT, ZIP.</small>
                         </div>
                     </div>
                     
                     <div class="mt-4 pt-4 border-top text-end">
                         <button type="button" class="btn btn-light me-2" @click="$router.push('/subjects')">Cancelar</button>
-                        <button type="submit" class="btn btn-primary px-4" :disabled="loading">
+                        <button type="submit" class="btn btn-primary px-4" :disabled="loading || uploading">
                             <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                             {{ subject.id ? 'Actualizar Cambios' : 'Anexar Materia' }}
                         </button>
@@ -45,12 +60,26 @@ export default {
     `,
     data() {
         return {
-            subject: { name: '', program: '' },
+            subject: { name: '', program: '', career_id: '' },
+            careers: [],
             loading: false,
+            uploading: false,
             error: null
         }
     },
     methods: {
+        async fetchCareers() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(window.API_BASE + '/api/careers', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.careers = result.data;
+                }
+            } catch (e) { console.error("Error fetching careers", e); }
+        },
         async fetchSubject(id) {
             try {
                 const token = localStorage.getItem('token');
@@ -69,6 +98,42 @@ export default {
             } catch (error) {
                 console.error("Error:", error);
                 this.error = "Error de conexión";
+            }
+        },
+        async handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            this.uploading = true;
+            this.error = null;
+
+            const formData = new FormData();
+            formData.append('program', file);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(window.API_BASE + '/api/subjects/upload-program', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (response.ok && result.status === 'success') {
+                    this.subject.program = result.url;
+                } else {
+                    this.error = result.error || 'Error al subir el archivo';
+                }
+            } catch (e) {
+                console.error(e);
+                this.error = 'Error de conexión al subir el archivo';
+            } finally {
+                this.uploading = false;
+            }
+        },
+        viewProgram() {
+            if (this.subject.program) {
+                window.open(window.API_BASE + '/' + this.subject.program, '_blank');
             }
         },
         async saveSubject() {
@@ -102,7 +167,8 @@ export default {
             }
         }
     },
-    mounted() {
+    async mounted() {
+        await this.fetchCareers();
         const id = this.$route.query.id;
         if(id) {
             this.fetchSubject(id);
