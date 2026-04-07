@@ -2,6 +2,7 @@ import Login from './components/Login.js';
 import Layout from './components/Layout.js';
 import Dashboard from './components/Dashboard.js';
 import StudentList from './components/StudentList.js';
+import StudentReportList from './components/StudentReportList.js';
 import StudentForm from './components/StudentForm.js';
 import TeacherList from './components/TeacherList.js';
 import TeacherForm from './components/TeacherForm.js';
@@ -19,6 +20,7 @@ import StudentGrades from './components/StudentGrades.js';
 import StudentCollect from './components/StudentCollect.js';
 import CycleList from './components/CycleList.js';
 import ScholarshipList from './components/ScholarshipList.js';
+import PaymentList from './components/PaymentList.js';
 
 const { createApp } = Vue;
 const { createRouter, createWebHashHistory } = VueRouter;
@@ -32,7 +34,8 @@ const routes = [
         redirect: '/dashboard',
         children: [
             { path: 'dashboard', component: Dashboard, meta: { title: 'Dashboard' } },
-            { path: 'students', component: StudentList, meta: { title: 'Listado de Estudiantes' } },
+            { path: 'students', component: StudentList, meta: { title: 'Base de Datos de Alumnos' } },
+            { path: 'students/report', component: StudentReportList, meta: { title: 'Listado de Estudiantes' } },
             { path: 'student/form', component: StudentForm, meta: { title: 'Ficha de Estudiante' } },
             { path: 'teachers', component: TeacherList, meta: { title: 'Listado de Profesores' } },
             { path: 'teacher/form', component: TeacherForm, meta: { title: 'Ficha de Profesor' } },
@@ -49,7 +52,8 @@ const routes = [
             { path: 'student/grades/:id', component: StudentGrades, meta: { title: 'Calificaciones' } },
             { path: 'student/collect/:id', component: StudentCollect, meta: { title: 'Cobrar' } },
             { path: 'config/cycles', component: CycleList, meta: { title: 'Ciclos Lectivos' } },
-            { path: 'config/scholarships', component: ScholarshipList, meta: { title: 'Tipos de Beca' } }
+            { path: 'config/scholarships', component: ScholarshipList, meta: { title: 'Tipos de Beca' } },
+            { path: 'payments', component: PaymentList, meta: { title: 'Gestión de Pagos' } }
         ]
     }
 ];

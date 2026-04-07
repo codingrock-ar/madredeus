@@ -84,14 +84,14 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         $sql = "INSERT INTO students (
                     dni, name, lastname, email, birthdate, nationality, phone, address, city, career, commission, shift, status,
                     photo, birth_place, document_type, civil_status, max_education_level, education_finished, degree_obtained,
-                    institution, book, folio, academic_cycle, address_street, address_number, address_type, address_province,
+                    institution, book, folio, academic_cycle, scholarship_id, academic_year, address_street, address_number, address_type, address_province,
                     address_locality, address_zip_code, phone_landline, phone_mobile, req_dni_photocopy, req_degree_photocopy,
                     req_degree_photocopy_obs, req_two_photos, req_psychophysical, req_psychophysical_obs, req_vaccines,
                     req_vaccines_obs, req_student_book, req_final_degree, req_final_degree_obs, found_institution, notes
                 ) VALUES (
                     :dni, :name, :lastname, :email, :birthdate, :nationality, :phone, :address, :city, :career, :commission, :shift, :status,
                     :photo, :birth_place, :document_type, :civil_status, :max_education_level, :education_finished, :degree_obtained,
-                    :institution, :book, :folio, :academic_cycle, :address_street, :address_number, :address_type, :address_province,
+                    :institution, :book, :folio, :academic_cycle, :scholarship_id, :academic_year, :address_street, :address_number, :address_type, :address_province,
                     :address_locality, :address_zip_code, :phone_landline, :phone_mobile, :req_dni_photocopy, :req_degree_photocopy,
                     :req_degree_photocopy_obs, :req_two_photos, :req_psychophysical, :req_psychophysical_obs, :req_vaccines,
                     :req_vaccines_obs, :req_student_book, :req_final_degree, :req_final_degree_obs, :found_institution, :notes
@@ -115,7 +115,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                     civil_status = :civil_status, max_education_level = :max_education_level,
                     education_finished = :education_finished, degree_obtained = :degree_obtained,
                     institution = :institution, book = :book, folio = :folio,
-                    academic_cycle = :academic_cycle, address_street = :address_street,
+                    academic_cycle = :academic_cycle, scholarship_id = :scholarship_id,
+                    academic_year = :academic_year, address_street = :address_street,
                     address_number = :address_number, address_type = :address_type,
                     address_province = :address_province, address_locality = :address_locality,
                     address_zip_code = :address_zip_code, phone_landline = :phone_landline,
@@ -134,6 +135,67 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         $params[':id'] = $id;
         
         return $stmt->execute($params);
+    }
+
+    public function getForReport(array $filters) {
+        if (!$this->db) return [];
+
+        $where = [];
+        $sqlParams = [];
+
+        if (!empty($filters['id'])) {
+            $where[] = "s.id = :id";
+            $sqlParams[':id'] = $filters['id'];
+        }
+        if (!empty($filters['career'])) {
+            $where[] = "s.career = :career";
+            $sqlParams[':career'] = $filters['career'];
+        }
+        if (!empty($filters['academic_cycle'])) {
+            $where[] = "s.academic_cycle = :academic_cycle";
+            $sqlParams[':academic_cycle'] = $filters['academic_cycle'];
+        }
+        if (!empty($filters['shift'])) {
+            $where[] = "s.shift = :shift";
+            $sqlParams[':shift'] = $filters['shift'];
+        }
+        if (!empty($filters['commission'])) {
+            $where[] = "s.commission = :commission";
+            $sqlParams[':commission'] = $filters['commission'];
+        }
+        if (!empty($filters['academic_year'])) {
+            $where[] = "s.academic_year = :academic_year";
+            $sqlParams[':academic_year'] = $filters['academic_year'];
+        }
+        if (!empty($filters['status'])) {
+            $where[] = "s.status = :status";
+            $sqlParams[':status'] = $filters['status'];
+        }
+        if (!empty($filters['scholarship_id'])) {
+            $where[] = "s.scholarship_id = :scholarship_id";
+            $sqlParams[':scholarship_id'] = $filters['scholarship_id'];
+        }
+        if (isset($filters['has_scholarship']) && $filters['has_scholarship'] === true) {
+            $where[] = "s.scholarship_id IS NOT NULL";
+        }
+        
+        $joinDebt = "";
+        if (isset($filters['has_debt']) && $filters['has_debt'] === true) {
+            $where[] = "p.status = 'Pendiente'";
+            $joinDebt = "JOIN payments p ON s.id = p.student_id";
+        }
+
+        $whereSql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
+        $sql = "SELECT DISTINCT s.*, st.name as scholarship_name 
+                FROM students s 
+                LEFT JOIN scholarship_types st ON s.scholarship_id = st.id 
+                $joinDebt
+                $whereSql 
+                ORDER BY s.lastname, s.name";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($sqlParams);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     private function mapParams(array $data) {
@@ -162,6 +224,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             ':book' => $data['book'] ?? null,
             ':folio' => $data['folio'] ?? null,
             ':academic_cycle' => $data['academic_cycle'] ?? null,
+            ':scholarship_id' => !empty($data['scholarship_id']) ? $data['scholarship_id'] : null,
+            ':academic_year' => $data['academic_year'] ?? '2024',
             ':address_street' => $data['address_street'] ?? null,
             ':address_number' => $data['address_number'] ?? null,
             ':address_type' => $data['address_type'] ?? 'Casa',

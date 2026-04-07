@@ -117,6 +117,9 @@ export default {
                                     <button class="btn btn-icon btn-sm btn-outline-dark" data-bs-toggle="tooltip" title="Cobrar" @click="collectPayment(student.id)">
                                         <i class="ph ph-currency-dollar"></i>
                                     </button>
+                                    <button class="btn btn-icon btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Promocionar" @click="promoteStudent(student.id)">
+                                        <i class="ph ph-fast-forward"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -253,6 +256,10 @@ export default {
         collectPayment(id) {
             this.destroyTooltips();
             this.$router.push('/student/collect/' + id);
+        },
+        promoteStudent(id) {
+            this.destroyTooltips();
+            this.$router.push('/students/promotion?student_id=' + id);
         },
         async fetchStudents() {
             this.destroyTooltips();

@@ -29,6 +29,7 @@ class Database {
             if ($this->db_type === 'mysql') {
                 $dsn = "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8mb4";
                 $conn = new PDO($dsn, $this->username, $this->password);
+                $conn->exec("SET NAMES utf8mb4");
             } 
             elseif ($this->db_type === 'sqlsrv') {
                 // Configuración para el sistema legacy (SQL Server)

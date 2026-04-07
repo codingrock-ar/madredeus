@@ -39,6 +39,8 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     // llamamos directamente a los métodos del controlador
     $group->group('/students', function (\Slim\Routing\RouteCollectorProxy $studentGroup) {
         $studentGroup->get('', \App\Controllers\StudentController::class . ':index');
+        $studentGroup->get('/report', \App\Controllers\StudentController::class . ':report');
+        $studentGroup->get('/export', \App\Controllers\StudentController::class . ':exportExcel');
         $studentGroup->get('/autocomplete', \App\Controllers\StudentController::class . ':autocomplete');
         $studentGroup->get('/{id}', \App\Controllers\StudentController::class . ':show');
         $studentGroup->post('', \App\Controllers\StudentController::class . ':create');
@@ -88,6 +90,14 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->put('/config/scholarships/{id}', \App\Controllers\ScholarshipController::class . ':update');
     $group->patch('/config/scholarships/{id}/status', \App\Controllers\ScholarshipController::class . ':toggleStatus');
     $group->delete('/config/scholarships/{id}', \App\Controllers\ScholarshipController::class . ':delete');
+    
+    // Promoción de alumnos
+    $group->post('/promotion', \App\Controllers\PromotionController::class . ':processPromotion');
+
+    // Pagos
+    $group->get('/payments', \App\Controllers\PaymentController::class . ':index');
+    $group->get('/payments/{id}', \App\Controllers\PaymentController::class . ':show');
+    $group->post('/payments', \App\Controllers\PaymentController::class . ':create');
 });
 
 // Ruta por defecto: Cargar la SPA (Frontend)

@@ -16,5 +16,6 @@ interface StudentRepositoryInterface {
     public function create(array $data);
     public function update($id, array $data);
     public function updateCommissionBulk(array $ids, string $commission);
+    public function getForReport(array $filters);
     public function delete($id);
 }

@@ -41,7 +41,7 @@ class StudentController {
             ]
         ]));
         
-        return $response->withHeader('Content-Type', 'application/json');
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
     }
 
     public function autocomplete(Request $request, Response $response, $args) {
@@ -62,7 +62,7 @@ class StudentController {
             'status' => 'success',
             'data' => $students
         ]));
-        return $response->withHeader('Content-Type', 'application/json');
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
     }
 
     public function show(Request $request, Response $response, $args) {
@@ -153,5 +153,91 @@ class StudentController {
 
         $response->getBody()->write(json_encode(['error' => 'Error al actualizar comisiones']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+
+    public function report(Request $request, Response $response, $args) {
+        $queryParams = $request->getQueryParams();
+        
+        $filters = [
+            'id' => $queryParams['legajo'] ?? null,
+            'career' => $queryParams['career'] ?? null,
+            'academic_cycle' => $queryParams['periodo'] ?? null,
+            'shift' => $queryParams['turno'] ?? null,
+            'commission' => $queryParams['comision'] ?? null,
+            'academic_year' => $queryParams['ciclo'] ?? null,
+            'status' => $queryParams['estado'] ?? null,
+            'scholarship_id' => $queryParams['scholarship_id'] ?? null,
+            'has_scholarship' => !empty($queryParams['becados']) && $queryParams['becados'] == 'true',
+            'has_debt' => !empty($queryParams['deudores']) && $queryParams['deudores'] == 'true'
+        ];
+
+        $students = $this->repository->getForReport($filters);
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'data' => $students
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+
+    public function exportExcel(Request $request, Response $response, $args) {
+        $queryParams = $request->getQueryParams();
+        
+        $filters = [
+            'id' => $queryParams['legajo'] ?? null,
+            'career' => $queryParams['career'] ?? null,
+            'academic_cycle' => $queryParams['periodo'] ?? null,
+            'shift' => $queryParams['turno'] ?? null,
+            'commission' => $queryParams['comision'] ?? null,
+            'academic_year' => $queryParams['ciclo'] ?? null,
+            'status' => $queryParams['estado'] ?? null,
+            'scholarship_id' => $queryParams['scholarship_id'] ?? null,
+            'has_scholarship' => !empty($queryParams['becados']) && $queryParams['becados'] == 'true',
+            'has_debt' => !empty($queryParams['deudores']) && $queryParams['deudores'] == 'true'
+        ];
+
+        $students = $this->repository->getForReport($filters);
+
+        // Generar CSV compatible con Excel
+        $output = fopen('php://temp', 'r+');
+        
+        // BOM para que Excel detecte UTF-8
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        // Cabecera
+        fputcsv($output, [
+            'Legajo', 'Apellido', 'Nombre', 'DNI', 'Carrera', 'Turno', 'Comisión', 
+            'Ciclo Lectivo', 'Periodo', 'Estado', 'Beca'
+        ], ';');
+
+        foreach ($students as $student) {
+            fputcsv($output, [
+                $student['id'],
+                $student['lastname'],
+                $student['name'],
+                $student['dni'],
+                $student['career'],
+                $student['shift'],
+                $student['commission'],
+                $student['academic_year'],
+                $student['academic_cycle'],
+                $student['status'],
+                $student['scholarship_name'] ?? 'Sin Beca'
+            ], ';');
+        }
+
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        $response->getBody()->write($csv);
+
+        $filename = 'listado_estudiantes_' . date('Ymd') . '.csv';
+        return $response
+            ->withHeader('Content-Type', 'text/csv; charset=utf-8')
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('Expires', '0');
     }
 }

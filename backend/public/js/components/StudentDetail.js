@@ -16,6 +16,9 @@ export default {
                 <router-link :to="'/student/form?id=' + student.id" class="btn btn-primary btn-sm">
                     <i class="ph ph-pencil me-1"></i> Editar
                 </router-link>
+                <router-link :to="'/students/promotion?student_id=' + student.id" class="btn btn-secondary btn-sm">
+                    <i class="ph ph-fast-forward me-1"></i> Promocionar
+                </router-link>
             </div>
         </div>
 

@@ -32,7 +32,7 @@ export default {
                     <router-link to="/student/form" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-plus"></i> Nuevo
                     </router-link>
-                    <router-link to="/students" class="nav-link ps-4 submenu-link" active-class="active">
+                    <router-link to="/students/report" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-users"></i> Listado de estudiantes
                     </router-link>
                     <router-link to="/students/sinigep" class="nav-link ps-4 submenu-link" active-class="active">
@@ -110,6 +110,20 @@ export default {
                         <i class="ph ph-student"></i> Tipos de Beca
                     </router-link>
                 </div>
+
+                <!-- Finanzas -->
+                <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
+                     style="letter-spacing: 1px; font-size: 0.7rem;"
+                     @click="toggleMenu('finanzas')">
+                    Finanzas
+                    <i class="ph" :class="activeMenus.finanzas ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                </div>
+                
+                <div v-show="activeMenus.finanzas" class="fade-in">
+                    <router-link to="/payments" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-hand-coins"></i> Cobranzas / Pagos
+                    </router-link>
+                </div>
             </nav>
         </div>
 
@@ -158,7 +172,8 @@ export default {
                 profesores: false,
                 carreras: false,
                 materias: false,
-                configuracion: false
+                configuracion: false,
+                finanzas: false
             }
         }
     },
