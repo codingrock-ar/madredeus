@@ -98,6 +98,8 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->get('/payments', \App\Controllers\PaymentController::class . ':index');
     $group->get('/payments/{id}', \App\Controllers\PaymentController::class . ':show');
     $group->post('/payments', \App\Controllers\PaymentController::class . ':create');
+    $group->put('/payments/{id}', \App\Controllers\PaymentController::class . ':update');
+    $group->delete('/payments/{id}', \App\Controllers\PaymentController::class . ':delete');
 });
 
 // Ruta por defecto: Cargar la SPA (Frontend)

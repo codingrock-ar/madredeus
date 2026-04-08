@@ -3,19 +3,20 @@ export default {
     <div class="fade-in">
         <div class="card-modern p-4">
             <!-- FILTROS SUPERIORES -->
-            <div class="row g-3 mb-4">
+            <!-- FILTROS SUPERIORES -->
+            <div class="row g-3 mb-3">
                 <div class="col-md-4 position-relative">
-                    <div class="input-group">
+                    <label class="form-label small fw-bold text-muted mb-1">Buscar Alumno</label>
+                    <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white border-end-0"><i class="ph ph-magnifying-glass text-muted"></i></span>
                         <input type="text" class="form-control border-start-0 ps-0" 
-                               placeholder="Buscar por DNI, Apellido o Nombre..." 
+                               placeholder="DNI, Apellido o Nombre..." 
                                v-model="filters.search" 
                                @input="onSearchInput"
                                @keydown.down="onArrowDown"
                                @keydown.up="onArrowUp"
                                @keydown.enter="onEnter">
                     </div>
-                    
                     <!-- Autocomplete Dropdown -->
                     <div v-if="showAutocomplete && suggestions.length > 0" class="autocomplete-dropdown shadow-sm border rounded-3 position-absolute start-0 end-0 bg-white mt-1">
                         <div v-for="(s, index) in suggestions" 
@@ -28,15 +29,46 @@ export default {
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" v-model="filters.career" @change="fetchStudents">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted mb-1">Carrera</label>
+                    <select class="form-select form-select-sm" v-model="filters.career" @change="fetchStudents">
                         <option value="">Todas las Carreras</option>
                         <option v-for="career in careers" :key="career.id" :value="career.title">
                             {{ career.title }}
                         </option>
                     </select>
                 </div>
-                <div class="col-md-5 text-end d-flex justify-content-end gap-2">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted mb-1">Comisión</label>
+                    <select class="form-select form-select-sm" v-model="filters.commission" @change="fetchStudents">
+                        <option value="">Todas las Comisiones</option>
+                        <option value="1er Año">1er Año</option>
+                        <option value="2do Año">2do Año</option>
+                        <option value="3er Año">3er Año</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Turno</label>
+                    <select class="form-select form-select-sm" v-model="filters.shift" @change="fetchStudents">
+                        <option value="">Todos los Turnos</option>
+                        <option value="Mañana">Mañana</option>
+                        <option value="Tarde">Tarde</option>
+                        <option value="Noche">Noche</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Estado</label>
+                    <select class="form-select form-select-sm" v-model="filters.status" @change="fetchStudents">
+                        <option value="">Todos los Estados</option>
+                        <option value="En Curso">En Curso</option>
+                        <option value="Abandono">Abandono</option>
+                        <option value="Egresado">Egresado</option>
+                    </select>
+                </div>
+                <div class="col-md-6 text-end d-flex align-items-end justify-content-end gap-2">
                     <button class="btn btn-outline-danger shadow-sm btn-sm" @click="exportToPdf">
                         <i class="ph ph-file-pdf me-1"></i> PDF
                     </button>
@@ -44,7 +76,7 @@ export default {
                         <i class="ph ph-printer me-1"></i> Imprimir
                     </button>
                     <button class="btn btn-primary shadow-sm btn-sm" @click="goToForm()">
-                        <i class="ph ph-plus-circle me-1"></i> Nuevo Estudiante
+                        <i class="ph ph-plus-circle me-1"></i> Nuevo Alumno
                     </button>
                 </div>
             </div>
@@ -161,6 +193,9 @@ export default {
             filters: {
                 search: '',
                 career: '',
+                commission: '',
+                shift: '',
+                status: '',
                 page: 1,
                 per_page: 10
             },
@@ -269,6 +304,9 @@ export default {
                 const query = new URLSearchParams({
                     search: this.filters.search,
                     career: this.filters.career,
+                    commission: this.filters.commission,
+                    shift: this.filters.shift,
+                    status: this.filters.status,
                     page: this.filters.page,
                     per_page: this.filters.per_page
                 }).toString();

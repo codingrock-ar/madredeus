@@ -13,46 +13,47 @@ export default {
             
             <div class="card-body p-4 p-md-5">
                 <form @submit.prevent="saveCareer">
-                    <div class="row g-4 mb-4">
-                        <h5 class="text-primary mb-3"><i class="ph ph-student me-2"></i>Información de la Carrera</h5>
+                    <div class="row g-4 mb-4" :class="{'opacity-75': isViewMode}">
+                        <h5 class="text-primary mb-3"><i class="ph ph-student me-2"></i>{{ isViewMode ? 'Información Detallada' : 'Información de la Carrera' }}</h5>
                         
                         <div class="col-md-8">
-                            <label class="form-label text-muted small fw-bold">Título de la Carrera <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" v-model="career.title" required placeholder="Ej: Enfermería Profesional">
+                            <label class="form-label text-muted small fw-bold">Título de la Carrera <span class="text-danger" v-if="!isViewMode">*</span></label>
+                            <input type="text" class="form-control" v-model="career.title" :required="!isViewMode" :disabled="isViewMode" placeholder="Ej: Enfermería Profesional">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label text-muted small fw-bold">Duración (Años) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" v-model="career.duration" required min="1" max="10">
+                            <label class="form-label text-muted small fw-bold">Duración (Años) <span class="text-danger" v-if="!isViewMode">*</span></label>
+                            <input type="number" class="form-control" v-model="career.duration" :required="!isViewMode" :disabled="isViewMode" min="1" max="10">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-bold">Resolución</label>
-                            <input type="text" class="form-control" v-model="career.resolution" placeholder="Ej: Res. 123/24">
+                            <input type="text" class="form-control" v-model="career.resolution" :disabled="isViewMode" placeholder="Ej: Res. 123/24">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-bold">Título a otorgar</label>
-                            <input type="text" class="form-control" v-model="career.degree_title" placeholder="Ej: Enfermero/a Profesional">
+                            <input type="text" class="form-control" v-model="career.degree_title" :disabled="isViewMode" placeholder="Ej: Enfermero/a Profesional">
                         </div>
 
                         <div class="col-12">
                             <label class="form-label text-muted small fw-bold">Plan de Estudio (Archivo PDF/Doc)</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="ph ph-file-pdf"></i></span>
-                                <input type="file" class="form-control" @change="handleFileUpload" accept=".pdf,.doc,.docx,.txt,.zip">
+                                <input v-if="!isViewMode" type="file" class="form-control" @change="handleFileUpload" accept=".pdf,.doc,.docx,.txt,.zip">
                                 <button v-if="career.study_plan" type="button" class="btn btn-outline-secondary" @click="viewStudyPlan">
                                     <i class="ph ph-eye me-1"></i> Ver Actual
                                 </button>
+                                <span v-else-if="isViewMode" class="form-control text-muted">No hay archivo adjunto</span>
                             </div>
                             <small class="text-muted mt-1 d-block" v-if="uploading">
                                 <span class="spinner-border spinner-border-sm me-1"></span> Subiendo plan...
                             </small>
-                            <small class="text-muted mt-1 d-block" v-else>Formatos aceptados: PDF, DOC, DOCX, TXT, ZIP.</small>
+                            <small v-if="!isViewMode" class="text-muted mt-1 d-block">Formatos aceptados: PDF, DOC, DOCX, TXT, ZIP.</small>
                         </div>
                     </div>
                     
                     <div class="mt-4 pt-4 border-top text-end">
-                        <button type="button" class="btn btn-light me-2" @click="$router.push('/careers')">Cancelar</button>
-                        <button type="submit" class="btn btn-primary px-4" :disabled="loading || uploading">
+                        <button type="button" class="btn btn-light me-2" @click="$router.push('/careers')">{{ isViewMode ? 'Cerrar' : 'Cancelar' }}</button>
+                        <button v-if="!isViewMode" type="submit" class="btn btn-primary px-4" :disabled="loading || uploading">
                             <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                             {{ career.id ? 'Actualizar Cambios' : 'Anexar Carrera' }}
                         </button>
@@ -68,6 +69,7 @@ export default {
             career: { title: '', duration: 3, resolution: '', degree_title: '', study_plan: '' },
             loading: false,
             uploading: false,
+            isViewMode: false,
             error: null
         }
     },
@@ -161,6 +163,7 @@ export default {
     },
     mounted() {
         const id = this.$route.query.id;
+        this.isViewMode = this.$route.query.view === '1';
         if(id) {
             this.fetchCareer(id);
         }

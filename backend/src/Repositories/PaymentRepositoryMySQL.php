@@ -47,6 +47,16 @@ class PaymentRepositoryMySQL {
             $params[':method'] = $filters['method'];
         }
 
+        if (!empty($filters['career'])) {
+            $sql .= " AND s.career = :career";
+            $params[':career'] = $filters['career'];
+        }
+
+        if (!empty($filters['commission'])) {
+            $sql .= " AND s.commission = :commission";
+            $params[':commission'] = $filters['commission'];
+        }
+
         $sql .= " ORDER BY p.payment_date DESC";
 
         // Obtener total sin límite para el resumen

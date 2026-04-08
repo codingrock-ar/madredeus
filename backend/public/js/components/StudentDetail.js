@@ -172,36 +172,46 @@ export default {
                         <div v-show="activeTab === 'academic'" class="fade-in">
                             <div class="row g-4">
                                 <div class="col-12">
-                                    <h6 class="fw-bold mb-3 border-bottom pb-2">Ficha Académica</h6>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="text-muted d-block small mb-0">Carrera</label>
-                                            <span class="fw-bold text-primary">{{ student.career }}</span>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0 border-bottom pb-2 w-100">Inscripciones a Carreras</h6>
+                                    </div>
+                                    
+                                    <div v-for="(ins, idx) in (student.inscriptions || [])" :key="ins.id" class="card border mb-3">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                            <span class="fw-bold text-primary"><i class="ph ph-graduation-cap me-2"></i>{{ ins.career_title }}</span>
+                                            <span v-if="idx === 0" class="badge bg-primary extra-small">Preferida</span>
                                         </div>
-                                        <div class="col-md-3 mb-3">
-                                            <label class="text-muted d-block small mb-0">Ciclo Lectivo</label>
-                                            <span class="fw-bold">{{ student.academic_cycle || '-' }}</span>
+                                        <div class="card-body p-3">
+                                            <div class="row">
+                                                <div class="col-md-3 mb-2">
+                                                    <label class="text-muted d-block extra-small mb-0">Ciclo Lectivo</label>
+                                                    <span class="small fw-bold">{{ ins.academic_cycle || '-' }}</span>
+                                                </div>
+                                                <div class="col-md-2 mb-2">
+                                                    <label class="text-muted d-block extra-small mb-0">Comisión</label>
+                                                    <span class="small fw-bold">{{ ins.commission || '-' }}</span>
+                                                </div>
+                                                <div class="col-md-2 mb-2">
+                                                    <label class="text-muted d-block extra-small mb-0">Turno</label>
+                                                    <span class="small fw-bold">{{ ins.shift || '-' }}</span>
+                                                </div>
+                                                <div class="col-md-3 mb-2">
+                                                    <label class="text-muted d-block extra-small mb-0">Estado</label>
+                                                    <span class="badge rounded-pill" 
+                                                          :class="{'badge-soft-success': ins.status === 'En Curso', 'badge-soft-danger': ins.status === 'Abandono', 'badge-soft-info': ins.status === 'Egresado'}">
+                                                        {{ ins.status }}
+                                                    </span>
+                                                </div>
+                                                <div class="col-md-2 mb-2 text-end">
+                                                    <label class="text-muted d-block extra-small mb-0">Libro/Folio</label>
+                                                    <span class="small">{{ ins.book || '-' }}/{{ ins.folio || '-' }}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="col-md-3 mb-3">
-                                            <label class="text-muted d-block small mb-0">Comisión</label>
-                                            <span class="fw-bold">{{ student.commission || '-' }}</span>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <label class="text-muted d-block small mb-0">Turno</label>
-                                            <span class="fw-bold">{{ student.shift || '-' }}</span>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <label class="text-muted d-block small mb-0">Libro</label>
-                                            <span class="fw-bold">{{ student.book || '-' }}</span>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <label class="text-muted d-block small mb-0">Folio</label>
-                                            <span class="fw-bold">{{ student.folio || '-' }}</span>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <label class="text-muted d-block small mb-0">Estado Actual</label>
-                                            <span class="badge" :class="statusBadgeClass">{{ student.status }}</span>
-                                        </div>
+                                    </div>
+                                    
+                                    <div v-if="!student.inscriptions || student.inscriptions.length === 0" class="text-muted small text-center py-4">
+                                        No hay inscripciones registradas.
                                     </div>
                                 </div>
                                 <div class="col-12" v-if="student.found_institution">

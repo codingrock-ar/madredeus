@@ -17,13 +17,13 @@ export default {
                         <h5 class="text-primary mb-3"><i class="ph ph-books me-2"></i>Información de la Materia</h5>
                         
                         <div class="col-md-6">
-                            <label class="form-label text-muted small fw-bold">Nombre <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" v-model="subject.name" required placeholder="Ej: Anatomía Funcional">
+                            <label class="form-label text-muted small fw-bold">Nombre <span class="text-danger" v-if="!isViewMode">*</span></label>
+                            <input type="text" class="form-control" v-model="subject.name" :required="!isViewMode" :disabled="isViewMode" placeholder="Ej: Anatomía Funcional">
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label text-muted small fw-bold">Carrera Asociada <span class="text-danger">*</span></label>
-                            <select class="form-select" v-model="subject.career_id" required>
+                            <label class="form-label text-muted small fw-bold">Carrera Asociada <span class="text-danger" v-if="!isViewMode">*</span></label>
+                            <select class="form-select" v-model="subject.career_id" :required="!isViewMode" :disabled="isViewMode">
                                 <option value="">Seleccione una carrera...</option>
                                 <option v-for="career in careers" :key="career.id" :value="career.id">{{ career.title }}</option>
                             </select>
@@ -33,21 +33,22 @@ export default {
                             <label class="form-label text-muted small fw-bold">Programa (Archivo PDF/Doc)</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="ph ph-file-pdf"></i></span>
-                                <input type="file" class="form-control" @change="handleFileUpload" accept=".pdf,.doc,.docx,.txt,.zip">
+                                <input v-if="!isViewMode" type="file" class="form-control" @change="handleFileUpload" accept=".pdf,.doc,.docx,.txt,.zip">
                                 <button v-if="subject.program" type="button" class="btn btn-outline-secondary" @click="viewProgram">
                                     <i class="ph ph-eye me-1"></i> Ver Actual
                                 </button>
+                                <span v-else-if="isViewMode" class="form-control text-muted">No hay archivo adjunto</span>
                             </div>
                             <small class="text-muted mt-1 d-block" v-if="uploading">
                                 <span class="spinner-border spinner-border-sm me-1"></span> Subiendo programa...
                             </small>
-                            <small class="text-muted mt-1 d-block" v-else>Formatos aceptados: PDF, DOC, DOCX, TXT, ZIP.</small>
+                            <small v-if="!isViewMode" class="text-muted mt-1 d-block">Formatos aceptados: PDF, DOC, DOCX, TXT, ZIP.</small>
                         </div>
                     </div>
                     
                     <div class="mt-4 pt-4 border-top text-end">
-                        <button type="button" class="btn btn-light me-2" @click="$router.push('/subjects')">Cancelar</button>
-                        <button type="submit" class="btn btn-primary px-4" :disabled="loading || uploading">
+                        <button type="button" class="btn btn-light me-2" @click="$router.push('/subjects')">{{ isViewMode ? 'Cerrar' : 'Cancelar' }}</button>
+                        <button v-if="!isViewMode" type="submit" class="btn btn-primary px-4" :disabled="loading || uploading">
                             <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                             {{ subject.id ? 'Actualizar Cambios' : 'Anexar Materia' }}
                         </button>
@@ -64,6 +65,7 @@ export default {
             careers: [],
             loading: false,
             uploading: false,
+            isViewMode: false,
             error: null
         }
     },
@@ -170,6 +172,7 @@ export default {
     async mounted() {
         await this.fetchCareers();
         const id = this.$route.query.id;
+        this.isViewMode = this.$route.query.view === '1';
         if(id) {
             this.fetchSubject(id);
         }

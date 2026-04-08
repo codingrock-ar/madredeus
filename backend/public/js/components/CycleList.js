@@ -4,7 +4,7 @@ export default {
         <div class="card-modern p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="fw-bold mb-0">Ciclos Lectivos</h5>
-                <button class="btn btn-primary shadow-sm" @click="showAddModal = true">
+                <button class="btn btn-primary shadow-sm" @click="showAddModal = true; initFlatpickr()">
                     <i class="ph ph-plus-circle me-1"></i> Nuevo Ciclo
                 </button>
             </div>
@@ -68,11 +68,11 @@ export default {
                         <div class="row g-3 mb-3">
                             <div class="col-6">
                                 <label class="form-label text-muted small fw-bold">Fecha Desde</label>
-                                <input type="date" class="form-control" v-model="newCycle.start_date">
+                                <input type="text" class="form-control" id="cycle_start_date" v-model="newCycle.start_date" placeholder="dd/mm/aaaa">
                             </div>
                             <div class="col-6">
                                 <label class="form-label text-muted small fw-bold">Fecha Hasta</label>
-                                <input type="date" class="form-control" v-model="newCycle.end_date">
+                                <input type="text" class="form-control" id="cycle_end_date" v-model="newCycle.end_date" placeholder="dd/mm/aaaa">
                             </div>
                         </div>
                         <div class="mb-3">
@@ -99,7 +99,8 @@ export default {
             cycles: [],
             showAddModal: false,
             editingId: null,
-            newCycle: { name: '', start_date: '', end_date: '', status: 'active' }
+            newCycle: { name: '', start_date: '', end_date: '', status: 'active' },
+            flatpickrInstances: []
         }
     },
     mounted() {
@@ -125,11 +126,51 @@ export default {
             this.editingId = cycle.id;
             this.newCycle = { ...cycle };
             this.showAddModal = true;
+            this.initFlatpickr();
+        },
+        initFlatpickr() {
+            this.$nextTick(() => {
+                const baseConfig = {
+                    dateFormat: "Y-m-d", // Backend format
+                    altInput: true,
+                    altFormat: "d/m/Y", // Display format
+                    allowInput: true,
+                    locale: "es",
+                };
+                
+                // Limpiar instancias previas si existen
+                this.flatpickrInstances.forEach(fp => fp.destroy());
+                this.flatpickrInstances = [];
+
+                const startInput = document.getElementById('cycle_start_date');
+                const endInput = document.getElementById('cycle_end_date');
+
+                if (startInput) {
+                    this.flatpickrInstances.push(flatpickr(startInput, {
+                        ...baseConfig,
+                        defaultDate: this.newCycle.start_date,
+                        onChange: (selectedDates, dateStr) => {
+                            this.newCycle.start_date = dateStr;
+                        }
+                    }));
+                }
+                if (endInput) {
+                    this.flatpickrInstances.push(flatpickr(endInput, {
+                        ...baseConfig,
+                        defaultDate: this.newCycle.end_date,
+                        onChange: (selectedDates, dateStr) => {
+                            this.newCycle.end_date = dateStr;
+                        }
+                    }));
+                }
+            });
         },
         closeModal() {
             this.showAddModal = false;
             this.editingId = null;
             this.newCycle = { name: '', start_date: '', end_date: '', status: 'active' };
+            this.flatpickrInstances.forEach(fp => fp.destroy());
+            this.flatpickrInstances = [];
         },
         async saveCycle() {
             try {

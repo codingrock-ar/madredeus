@@ -48,4 +48,42 @@ class PaymentController {
         $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al registrar el pago']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
+
+    public function update(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $data = json_decode((string)$request->getBody(), true);
+        
+        if (empty($data['amount']) || empty($data['concept'])) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Faltan campos obligatorios']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $success = $this->repository->update($id, [
+            'amount' => $data['amount'],
+            'payment_date' => $data['payment_date'] ?? date('Y-m-d H:i:s'),
+            'payment_method' => $data['payment_method'] ?? 'Efectivo',
+            'concept' => $data['concept'],
+            'status' => $data['status'] ?? 'Pagado',
+            'notes' => $data['notes'] ?? null
+        ]);
+
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Pago actualizado correctamente']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
+
+        $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al actualizar el pago']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+
+    public function delete(Request $request, Response $response, $args) {
+        $success = $this->repository->delete($args['id']);
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Pago eliminado correctamente']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
+
+        $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al eliminar el pago']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
 }

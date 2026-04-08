@@ -48,9 +48,18 @@ class PromotionController {
             $newStatus = 'Finalizó Cursada';
         }
 
+        // Handle source career ID if provided as title
+        $sourceCareerId = null;
+        if (!empty($source['career'])) {
+            $stmt = (new \App\Config\Database())->getConnection()->prepare("SELECT id FROM careers WHERE title = :title");
+            $stmt->execute([':title' => $source['career']]);
+            $c = $stmt->fetch();
+            if ($c) $sourceCareerId = $c['id'];
+        }
+
         // If we are bypassing (manual promotion), just execute
         if (!empty($bypassIds)) {
-            $success = $this->repository->promoteStudentsByIds($bypassIds, $target, $newStatus);
+            $success = $this->repository->promoteStudentsByIds($bypassIds, $target, $newStatus, $sourceCareerId);
             $response->getBody()->write(json_encode([
                 'status' => 'success',
                 'message' => 'Alumnos promocionados manualmente correctamente'
@@ -87,7 +96,9 @@ class PromotionController {
         $promotedIds = array_column($promoted, 'id');
         $executionSuccess = true;
         if (!empty($promotedIds)) {
-            $executionSuccess = $this->repository->promoteStudentsByIds($promotedIds, $target, $newStatus);
+            // All students in $promoted should have the same career_id from the query
+            $sId = !empty($promoted) ? $promoted[0]['career_id'] : $sourceCareerId;
+            $executionSuccess = $this->repository->promoteStudentsByIds($promotedIds, $target, $newStatus, $sId);
         }
 
         if ($executionSuccess) {

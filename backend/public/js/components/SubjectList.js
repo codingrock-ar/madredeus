@@ -29,7 +29,7 @@ export default {
                     <tbody>
                         <tr v-for="materia in paginatedSubjects" :key="materia.id">
                             <td>{{ materia.id }}</td>
-                            <td class="text-primary fw-semibold" style="text-decoration: underline; cursor: pointer;" @click="$router.push('/subject/form?id=' + materia.id)">{{ materia.name }}</td>
+                            <td class="text-primary fw-semibold hover-underline" style="cursor: pointer;" @click="$router.push('/subject/form?id=' + materia.id + '&view=1')">{{ materia.name }}</td>
                             <td>
                                 <a :href="materia.program" target="_blank" v-if="materia.program && materia.program.length > 0">
                                     <i class="ph ph-file-doc fs-4 text-primary"></i>

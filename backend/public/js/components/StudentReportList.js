@@ -33,13 +33,13 @@ export default {
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label small fw-bold">Periodo</label>
+                    <label class="form-label small fw-bold">Período</label>
                     <select class="form-select form-select-sm" v-model="filters.periodo">
                         <option value="">Todos</option>
                         <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
                     </select>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold">Turno</label>
                     <select class="form-select form-select-sm" v-model="filters.turno">
                         <option value="">Todos</option>
@@ -47,7 +47,7 @@ export default {
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label small fw-bold">Comision</label>
+                    <label class="form-label small fw-bold">Comisión</label>
                     <select class="form-select form-select-sm" v-model="filters.comision">
                         <option value="">Todos</option>
                         <option v-for="c in commissions" :key="c" :value="c">{{ c }}</option>
@@ -57,10 +57,10 @@ export default {
                     <label class="form-label small fw-bold">Ciclo Lectivo</label>
                     <select class="form-select form-select-sm" v-model="filters.ciclo">
                         <option value="">Todos</option>
-                        <option v-for="y in cycles" :key="y.id" :value="y.name">{{ y.name }}</option>
+                        <option v-for="y in activeCycles" :key="y.id" :value="y.name">{{ y.name }}</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold">Estado</label>
                     <select class="form-select form-select-sm" v-model="filters.estado">
                         <option value="">Todos</option>
@@ -82,11 +82,11 @@ export default {
                     </div>
                 </div>
 
-                <div class="col-md-2">
+                <div class="col-md-4">
                     <label class="form-label small fw-bold">Tipo Beca</label>
                     <select class="form-select form-select-sm" v-model="filters.scholarship_id" :disabled="!filters.becados">
                         <option value="">Todas</option>
-                        <option v-for="s in scholarships" :key="s.id" :value="s.id">{{ s.name }}</option>
+                        <option v-for="s in activeScholarships" :key="s.id" :value="s.id">{{ s.name }}</option>
                     </select>
                 </div>
             </div>
@@ -172,6 +172,14 @@ export default {
                 scholarship_id: ''
             },
             loading: false
+        }
+    },
+    computed: {
+        activeCycles() {
+            return this.cycles.filter(c => c.status === 'active');
+        },
+        activeScholarships() {
+            return this.scholarships.filter(s => s.status === 'active');
         }
     },
     async mounted() {
@@ -277,7 +285,7 @@ export default {
             window.location.href = '/api/students/export?' + qs;
         },
         async editStudent(student) {
-            const scholarshipOptions = this.scholarships.map(s => `<option value="${s.id}" ${student.scholarship_id == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
+            const scholarshipOptions = this.activeScholarships.map(s => `<option value="${s.id}" ${student.scholarship_id == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
             
             const { value: formValues } = await Swal.fire({
                 title: `Editar Alumno #${student.id}`,

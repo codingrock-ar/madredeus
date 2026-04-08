@@ -21,16 +21,16 @@ export default {
                 <div class="px-3 mt-4 mb-2 text-uppercase small fw-bold text-muted-sidebar d-flex align-items-center justify-content-between pointer" 
                      style="letter-spacing: 1px; font-size: 0.7rem;"
                      @click="toggleMenu('alumnos')">
-                    Listado de alumnos
+                    Alumnos
                     <i class="ph" :class="activeMenus.alumnos ? 'ph-caret-up' : 'ph-caret-down'"></i>
                 </div>
                 
                 <div v-show="activeMenus.alumnos" class="fade-in">
-                    <router-link to="/students" class="nav-link ps-4 submenu-link" active-class="active">
-                        <i class="ph ph-database"></i> Base de datos
-                    </router-link>
                     <router-link to="/student/form" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-plus"></i> Nuevo
+                    </router-link>
+                    <router-link to="/students" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-database"></i> Base de datos
                     </router-link>
                     <router-link to="/students/report" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-users"></i> Listado de estudiantes
@@ -58,11 +58,11 @@ export default {
                 </div>
                 
                 <div v-show="activeMenus.profesores" class="fade-in">
-                    <router-link to="/teachers" class="nav-link ps-4 submenu-link" active-class="active">
-                        <i class="ph ph-database"></i> Base de datos
-                    </router-link>
                     <router-link to="/teacher/form" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-plus"></i> Nuevo
+                    </router-link>
+                    <router-link to="/teachers" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-database"></i> Base de datos
                     </router-link>
                 </div>
 
@@ -75,6 +75,9 @@ export default {
                 </div>
                 
                 <div v-show="activeMenus.carreras" class="fade-in">
+                    <router-link to="/career/form" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-plus"></i> Nuevo
+                    </router-link>
                     <router-link to="/careers" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-database"></i> Base de datos
                     </router-link>
@@ -89,6 +92,9 @@ export default {
                 </div>
                 
                 <div v-show="activeMenus.materias" class="fade-in">
+                    <router-link to="/subject/form" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-plus"></i> Nuevo
+                    </router-link>
                     <router-link to="/subjects" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-database"></i> Base de datos
                     </router-link>

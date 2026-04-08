@@ -270,6 +270,14 @@ body {
     cursor: pointer;
 }
 
+.hover-underline {
+    text-decoration: none !important;
+}
+
+.hover-underline:hover {
+    text-decoration: underline !important;
+}
+
 /* Print Styles */
 @media print {
     /* Hide non-essential UI */
