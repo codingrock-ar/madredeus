@@ -24,6 +24,10 @@ class StudentController {
         $params = [
             'search' => $queryParams['search'] ?? null,
             'career' => $queryParams['career'] ?? null,
+            'commission' => $queryParams['commission'] ?? null,
+            'shift' => $queryParams['shift'] ?? null,
+            'status' => $queryParams['status'] ?? null,
+            'academic_cycle' => $queryParams['academic_cycle'] ?? null,
             'page' => $queryParams['page'] ?? 1,
             'per_page' => $queryParams['per_page'] ?? 10
         ];
@@ -154,6 +158,26 @@ class StudentController {
         $response->getBody()->write(json_encode(['error' => 'Error al actualizar comisiones']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
+    
+    public function inscribe(Request $request, Response $response, $args) {
+        $studentId = $args['id'];
+        $data = json_decode((string)$request->getBody(), true);
+        
+        if (empty($data['career_id'])) {
+            $response->getBody()->write(json_encode(['error' => 'Falta el ID de la carrera']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+        
+        $success = $this->repository->inscribeCareer($studentId, $data);
+        
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Inscripción realizada exitosamente']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+        }
+        
+        $response->getBody()->write(json_encode(['error' => 'Error al procesar la inscripción']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
 
     public function report(Request $request, Response $response, $args) {
         $queryParams = $request->getQueryParams();
@@ -166,6 +190,8 @@ class StudentController {
             'commission' => $queryParams['comision'] ?? null,
             'academic_year' => $queryParams['ciclo'] ?? null,
             'status' => $queryParams['estado'] ?? null,
+            'name' => $queryParams['name'] ?? null,
+            'lastname' => $queryParams['lastname'] ?? null,
             'scholarship_id' => $queryParams['scholarship_id'] ?? null,
             'has_scholarship' => !empty($queryParams['becados']) && $queryParams['becados'] == 'true',
             'has_debt' => !empty($queryParams['deudores']) && $queryParams['deudores'] == 'true'
@@ -192,6 +218,8 @@ class StudentController {
             'commission' => $queryParams['comision'] ?? null,
             'academic_year' => $queryParams['ciclo'] ?? null,
             'status' => $queryParams['estado'] ?? null,
+            'name' => $queryParams['name'] ?? null,
+            'lastname' => $queryParams['lastname'] ?? null,
             'scholarship_id' => $queryParams['scholarship_id'] ?? null,
             'has_scholarship' => !empty($queryParams['becados']) && $queryParams['becados'] == 'true',
             'has_debt' => !empty($queryParams['deudores']) && $queryParams['deudores'] == 'true'

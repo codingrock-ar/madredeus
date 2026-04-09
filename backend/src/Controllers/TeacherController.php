@@ -140,4 +140,45 @@ class TeacherController {
         $response->getBody()->write(json_encode(['error' => 'Error al guardar la imagen en el servidor']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
+
+    public function getSubjects(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $subjects = $this->repository->getSubjects($id);
+        $response->getBody()->write(json_encode(['status' => 'success', 'data' => $subjects]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    }
+
+    public function assignSubject(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $data = json_decode((string)$request->getBody(), true);
+        $subjectId = $data['subject_id'] ?? null;
+
+        if (!$subjectId) {
+            $response->getBody()->write(json_encode(['error' => 'ID de materia no proporcionado']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $success = $this->repository->assignSubject($id, $subjectId);
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Materia asignada']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
+
+        $response->getBody()->write(json_encode(['error' => 'Error al asignar materia']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+
+    public function removeSubject(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $subjectId = $args['subject_id'];
+
+        $success = $this->repository->removeSubject($id, $subjectId);
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Asignación eliminada']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
+
+        $response->getBody()->write(json_encode(['error' => 'Error al eliminar asignación']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
 }

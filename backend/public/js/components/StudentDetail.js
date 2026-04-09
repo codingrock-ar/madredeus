@@ -225,39 +225,44 @@ export default {
 
                         <!-- TAB: GRADES -->
                         <div v-show="activeTab === 'grades'" class="fade-in">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="fw-bold mb-0">Estado de Situación Académica</h6>
-                                <span class="badge bg-soft-success">Promedio: 8.45</span>
+                            <div v-if="student.inscriptions && student.inscriptions.length > 0">
+                                <div v-for="ins in student.inscriptions" :key="'ins-grades-' + ins.id" class="mb-5">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0 text-primary"><i class="ph ph-graduation-cap me-2"></i>{{ ins.career_title }}</h6>
+                                        <span class="badge bg-soft-success">Promedio: -</span>
+                                    </div>
+                                    
+                                    <div v-if="ins.subjects && ins.subjects.length > 0">
+                                        <div v-for="year in getYears(ins.subjects)" :key="year" class="mb-4">
+                                            <div class="bg-light p-2 rounded mb-2 fw-bold small">AÑO {{ year }}</div>
+                                            <div class="row g-3">
+                                                <div v-for="q in [1, 2]" :key="q" class="col-md-6">
+                                                    <div class="border rounded p-3 h-100">
+                                                        <h7 class="fw-bold d-block mb-2 text-muted extra-small text-uppercase">Cuatrimestre {{ q }}</h7>
+                                                        <ul class="list-group list-group-flush small">
+                                                            <li v-for="sub in filterSubjects(ins.subjects, year, q)" :key="sub.id" 
+                                                                class="list-group-item px-0 py-1 d-flex justify-content-between align-items-center border-dashed">
+                                                                <span>{{ sub.name }}</span>
+                                                                <span class="badge border text-muted extra-small">Pendiente</span>
+                                                            </li>
+                                                            <li v-if="filterSubjects(ins.subjects, year, q).length === 0" class="list-group-item px-0 py-1 text-muted extra-small italic">
+                                                                No hay materias asigancdas.
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-else class="text-center py-4 text-muted small">
+                                        No se encontraron materias cargadas para este plan de estudios.
+                                    </div>
+                                    <hr v-if="student.inscriptions.length > 1" class="my-4">
+                                </div>
                             </div>
-                            <!-- Mock table remains same for now as backend for grades isn't ready -->
-                            <div class="table-responsive">
-                                <table class="table table-sm align-middle small">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Materia</th>
-                                            <th class="text-center">Parcial 1</th>
-                                            <th class="text-center">Parcial 2</th>
-                                            <th class="text-center">Final</th>
-                                            <th class="text-center">Estado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>ANATOMOFISIOLOGIA</td>
-                                            <td class="text-center">8</td>
-                                            <td class="text-center">7</td>
-                                            <td class="text-center">9</td>
-                                            <td class="text-center"><span class="badge border text-success">Aprobado</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>MICROBIOLOGIA</td>
-                                            <td class="text-center">9</td>
-                                            <td class="text-center">8</td>
-                                            <td class="text-center">-</td>
-                                            <td class="text-center"><span class="badge border text-primary">Cursando</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div v-else class="text-center py-5">
+                                <i class="ph ph-mask-sad fs-1 text-muted mb-2"></i>
+                                <p class="text-muted small">El alumno no tiene inscripciones activas para ver calificaciones.</p>
                             </div>
                         </div>
 
@@ -278,12 +283,23 @@ export default {
                                             <th>Estado</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody v-if="student.payments && student.payments.length > 0">
+                                        <tr v-for="p in student.payments" :key="p.id">
+                                            <td>{{ p.concept }}</td>
+                                            <td>{{ formatDate(p.payment_date) }}</td>
+                                            <td class="fw-bold text-dark">$ {{ formatCurrency(p.amount) }}</td>
+                                            <td>
+                                                <span :class="p.status === 'Pagado' ? 'text-success' : 'text-danger'" class="fw-bold">
+                                                    {{ p.status }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                    <tbody v-else>
                                         <tr>
-                                            <td>Matrícula 2024</td>
-                                            <td>05/03/2024</td>
-                                            <td>$15.000,00</td>
-                                            <td><span class="text-success fw-bold">Pagado</span></td>
+                                            <td colspan="4" class="text-center py-4 text-muted small">
+                                                No hay pagos registrados para este alumno.
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -398,6 +414,24 @@ export default {
         },
         printDetail() {
             window.print();
+        },
+        formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('es-AR');
+        },
+        formatCurrency(amount) {
+            return parseFloat(amount).toLocaleString('es-AR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        },
+        getYears(subjects) {
+            const years = [...new Set(subjects.map(s => s.academic_year))];
+            return years.sort((a, b) => a - b);
+        },
+        filterSubjects(subjects, year, quarter) {
+            return subjects.filter(s => s.academic_year == year && s.quarter == quarter);
         }
     }
 }

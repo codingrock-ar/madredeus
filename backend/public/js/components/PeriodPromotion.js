@@ -1,11 +1,37 @@
 export default {
     template: `
     <div class="fade-in">
-        <!-- SELECCIÓN DE CARRERA (Única) -->
-        <div class="card-modern p-4 mb-4">
+        <div v-if="individualStudent" class="card-modern bg-soft-primary border-primary p-4 mb-4 shadow-sm fade-in">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    <div class="avatar-lg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold mx-auto shadow" style="width: 80px; height: 80px; font-size: 1.5rem;">
+                        {{ individualStudent.name.charAt(0) }}{{ individualStudent.lastname.charAt(0) }}
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="badge bg-primary mb-2">MODO INDIVIDUAL</div>
+                    <h3 class="fw-bold mb-1">{{ individualStudent.lastname }}, {{ individualStudent.name }}</h3>
+                    <p class="mb-0 text-muted">
+                        <span class="fw-bold">Legajo:</span> #{{ individualStudent.id }} | 
+                        <span class="fw-bold">Carrera Actual:</span> {{ shared.career }} |
+                        <span class="fw-bold">Turno/Com:</span> {{ source.shift }} - {{ source.commission }}
+                    </p>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button class="btn btn-light border btn-sm shadow-xs" @click="resetIndividual">
+                        <i class="ph ph-arrow-left me-1"></i> Volver a General
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SELECCIÓN DE CARRERA (Solo modo general) -->
+        <div v-if="!individualStudent" class="card-modern p-4 mb-4">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h5 class="fw-bold mb-1"><i class="ph ph-fast-forward me-2"></i>Promoción de Alumnos</h5>
+                    <h5 class="fw-bold mb-1">
+                        <i class="ph ph-fast-forward me-2 text-primary"></i>Promoción de Alumnos
+                    </h5>
                     <p class="text-muted small mb-0">Seleccione la carrera para iniciar el proceso de configuración.</p>
                 </div>
                 <div class="col-md-4">
@@ -234,6 +260,13 @@ export default {
                     this.source.shift = s.shift;
                     this.source.commission = s.commission;
                     this.filters.student_id = id;
+                    
+                    // Pre-seleccionar destino por defecto (siguiente periodo)
+                    if (this.source.period && !isNaN(this.source.period)) {
+                        this.target.period = (parseInt(this.source.period) + 1).toString();
+                        this.target.shift = this.source.shift;
+                        this.target.commission = this.source.commission;
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching individual student:", error);
@@ -252,9 +285,16 @@ export default {
         isPeriodDisabled(p) {
             if (!this.source.period) return true;
             const allPeriods = this.sourceCareerPeriods;
-            const sourceIdx = allPeriods.indexOf(this.source.period);
-            const targetIdx = allPeriods.indexOf(p);
+            const sourceIdx = allPeriods.indexOf(this.source.period.toString());
+            const targetIdx = allPeriods.indexOf(p.toString());
             return targetIdx <= sourceIdx;
+        },
+        resetIndividual() {
+            this.individualStudent = null;
+            this.filters.student_id = null;
+            this.shared.career = '';
+            this.source = { shift: '', commission: '', period: '' };
+            this.$router.push('/students/promotion');
         },
         async fetchData() {
             try {

@@ -3,11 +3,10 @@ export default {
     <div class="fade-in">
         <div class="card-modern p-4">
             <!-- FILTROS SUPERIORES -->
-            <!-- FILTROS SUPERIORES -->
-            <div class="row g-3 mb-3">
-                <div class="col-md-4 position-relative">
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
                     <label class="form-label small fw-bold text-muted mb-1">Buscar Alumno</label>
-                    <div class="input-group input-group-sm">
+                    <div class="input-group">
                         <span class="input-group-text bg-white border-end-0"><i class="ph ph-magnifying-glass text-muted"></i></span>
                         <input type="text" class="form-control border-start-0 ps-0" 
                                placeholder="DNI, Apellido o Nombre..." 
@@ -15,69 +14,84 @@ export default {
                                @input="onSearchInput"
                                @keydown.down="onArrowDown"
                                @keydown.up="onArrowUp"
-                               @keydown.enter="onEnter">
-                    </div>
-                    <!-- Autocomplete Dropdown -->
-                    <div v-if="showAutocomplete && suggestions.length > 0" class="autocomplete-dropdown shadow-sm border rounded-3 position-absolute start-0 end-0 bg-white mt-1">
-                        <div v-for="(s, index) in suggestions" 
-                             :key="s.id" 
-                             class="suggestion-item p-2 border-bottom pointer"
-                             :class="{ 'bg-light': index === arrowCounter }"
-                             @click="selectSuggestion(s)">
-                            <div class="fw-bold small">{{ s.lastname }}, {{ s.name }}</div>
-                            <div class="text-muted extra-small">DNI: {{ s.dni }}</div>
-                        </div>
+                               @keydown.enter="onEnter"
+                               @keyup.esc="showAutocomplete = false"
+                               @focus="showAutocomplete = suggestions.length > 0"
+                               @blur="onBlur">
+                        
+                        <!-- Lista de Autocompletado -->
+                        <ul class="autocomplete-results shadow-lg list-group position-absolute w-100 mt-5" 
+                            style="z-index: 1000; top: 0;"
+                            v-if="showAutocomplete && suggestions.length > 0">
+                            <li class="list-group-item list-group-item-action py-2 border-0 border-bottom d-flex align-items-center gap-2"
+                                v-for="(student, i) in suggestions" 
+                                :key="student.id"
+                                @click="selectSuggestion(student)"
+                                :class="{ 'bg-light active-suggestion': i === arrowCounter }"
+                                style="cursor: pointer;">
+                                <div class="avatar-sm bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                                    {{ student.name.charAt(0) }}{{ student.lastname.charAt(0) }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold fs-7">{{ student.lastname }}, {{ student.name }}</div>
+                                    <div class="extra-small text-muted">DNI: {{ student.dni }} | Legajo: #{{ student.id }}</div>
+                                </div>
+                            </li>
+                        </ul>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6 text-end d-flex align-items-end justify-content-end gap-2">
+                    <button class="btn btn-outline-danger shadow-sm" @click="exportToPdf">
+                        <i class="ph ph-file-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-outline-secondary shadow-sm" @click="printList">
+                        <i class="ph ph-printer me-1"></i> Imprimir
+                    </button>
+                    <button class="btn btn-primary shadow-sm" @click="goToForm()">
+                        <i class="ph ph-plus-circle me-1"></i> Nuevo Alumno
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4 p-3 bg-light rounded-3 border-dashed">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">Carrera</label>
-                    <select class="form-select form-select-sm" v-model="filters.career" @change="fetchStudents">
+                    <select class="form-select" v-model="filters.career" @change="fetchStudents">
                         <option value="">Todas las Carreras</option>
                         <option v-for="career in careers" :key="career.id" :value="career.title">
                             {{ career.title }}
                         </option>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">Comisión</label>
-                    <select class="form-select form-select-sm" v-model="filters.commission" @change="fetchStudents">
-                        <option value="">Todas las Comisiones</option>
-                        <option value="1er Año">1er Año</option>
-                        <option value="2do Año">2do Año</option>
-                        <option value="3er Año">3er Año</option>
+                    <select class="form-select" v-model="filters.commission" @change="fetchStudents">
+                        <option value="">Todas</option>
+                        <option value="A">Comisión A</option>
+                        <option value="B">Comisión B</option>
+                        <option value="C">Comisión C</option>
+                        <option value="D">Comisión D</option>
+                        <option value="E">Comisión E</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="row g-3 mb-4">
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">Turno</label>
-                    <select class="form-select form-select-sm" v-model="filters.shift" @change="fetchStudents">
+                    <select class="form-select" v-model="filters.shift" @change="fetchStudents">
                         <option value="">Todos los Turnos</option>
-                        <option value="Mañana">Mañana</option>
-                        <option value="Tarde">Tarde</option>
-                        <option value="Noche">Noche</option>
+                        <option value="TM">Mañana (TM)</option>
+                        <option value="TT">Tarde (TT)</option>
+                        <option value="TN">Noche (TN)</option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">Estado</label>
-                    <select class="form-select form-select-sm" v-model="filters.status" @change="fetchStudents">
+                    <select class="form-select" v-model="filters.status" @change="fetchStudents">
                         <option value="">Todos los Estados</option>
                         <option value="En Curso">En Curso</option>
                         <option value="Abandono">Abandono</option>
                         <option value="Egresado">Egresado</option>
+                        <option value="Finalizó Cursada">Finalizó Cursada</option>
                     </select>
-                </div>
-                <div class="col-md-6 text-end d-flex align-items-end justify-content-end gap-2">
-                    <button class="btn btn-outline-danger shadow-sm btn-sm" @click="exportToPdf">
-                        <i class="ph ph-file-pdf me-1"></i> PDF
-                    </button>
-                    <button class="btn btn-outline-secondary shadow-sm btn-sm" @click="printList">
-                        <i class="ph ph-printer me-1"></i> Imprimir
-                    </button>
-                    <button class="btn btn-primary shadow-sm btn-sm" @click="goToForm()">
-                        <i class="ph ph-plus-circle me-1"></i> Nuevo Alumno
-                    </button>
                 </div>
             </div>
 
@@ -132,26 +146,26 @@ export default {
                                     {{ student.status }}
                                 </span>
                             </td>
-                            <td class="text-end">
+                            <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-1">
-                                    <button class="btn btn-icon btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Ver detalle" @click="viewDetail(student.id)">
+                                    <router-link :to="'/student/detail/' + student.id" class="btn btn-icon btn-sm btn-outline-info" title="Ver detalle">
                                         <i class="ph ph-eye"></i>
-                                    </button>
-                                    <button class="btn btn-icon btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Editar Inscripción" @click="editInscription(student.id)">
+                                    </router-link>
+                                    <router-link :to="'/students/inscription?id=' + student.id" class="btn btn-icon btn-sm btn-outline-warning" title="Editar Inscripción">
                                         <i class="ph ph-user-plus"></i>
-                                    </button>
-                                    <button class="btn btn-icon btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Editar" @click="goToForm(student.id)">
+                                    </router-link>
+                                    <router-link :to="'/student/form?id=' + student.id" class="btn btn-icon btn-sm btn-outline-primary" title="Editar">
                                         <i class="ph ph-pencil-simple"></i>
-                                    </button>
-                                    <button class="btn btn-icon btn-sm btn-outline-success" data-bs-toggle="tooltip" title="Calificaciones" @click="viewGrades(student.id)">
+                                    </router-link>
+                                    <router-link :to="'/student/grades/' + student.id" class="btn btn-icon btn-sm btn-outline-success" title="Calificaciones">
                                         <i class="ph ph-graduation-cap"></i>
-                                    </button>
-                                    <button class="btn btn-icon btn-sm btn-outline-dark" data-bs-toggle="tooltip" title="Cobrar" @click="collectPayment(student.id)">
+                                    </router-link>
+                                    <router-link :to="'/student/collect/' + student.id" class="btn btn-icon btn-sm btn-outline-dark" title="Cobrar">
                                         <i class="ph ph-currency-dollar"></i>
-                                    </button>
-                                    <button class="btn btn-icon btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Promocionar" @click="promoteStudent(student.id)">
+                                    </router-link>
+                                    <router-link :to="'/students/promotion?student_id=' + student.id" class="btn btn-icon btn-sm btn-outline-secondary" title="Promocionar">
                                         <i class="ph ph-fast-forward"></i>
-                                    </button>
+                                    </router-link>
                                 </div>
                             </td>
                         </tr>
@@ -363,10 +377,25 @@ export default {
             // Remove any leftover tooltip elements from the DOM
             const leftovers = document.querySelectorAll('.tooltip');
             leftovers.forEach(el => el.remove());
+        },
+        handleClickOutside(e) {
+            if (this.$el && !this.$el.contains(e.target)) {
+                this.showAutocomplete = false;
+            }
+        },
+        onBlur() {
+            // Delay to allow selectSuggestion to fire if a click happened
+            setTimeout(() => {
+                this.showAutocomplete = false;
+            }, 200);
         }
     },
     async mounted() {
         await this.fetchCareers();
         await this.fetchStudents();
+        document.addEventListener('click', this.handleClickOutside);
+    },
+    unmounted() {
+        document.removeEventListener('click', this.handleClickOutside);
     }
 }

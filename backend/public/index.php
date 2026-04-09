@@ -45,6 +45,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
         $studentGroup->get('/{id}', \App\Controllers\StudentController::class . ':show');
         $studentGroup->post('', \App\Controllers\StudentController::class . ':create');
         $studentGroup->post('/bulk-commission', \App\Controllers\StudentController::class . ':bulkUpdateCommission');
+        $studentGroup->post('/{id}/inscriptions', \App\Controllers\StudentController::class . ':inscribe');
         $studentGroup->put('/{id}', \App\Controllers\StudentController::class . ':update');
         $studentGroup->delete('/{id}', \App\Controllers\StudentController::class . ':delete');
     });
@@ -54,6 +55,9 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->post('/teachers', \App\Controllers\TeacherController::class . ':create');
     $group->post('/teachers/upload-photo', \App\Controllers\TeacherController::class . ':uploadPhoto');
     $group->put('/teachers/{id}', \App\Controllers\TeacherController::class . ':update');
+    $group->get('/teachers/{id}/subjects', \App\Controllers\TeacherController::class . ':getSubjects');
+    $group->post('/teachers/{id}/subjects', \App\Controllers\TeacherController::class . ':assignSubject');
+    $group->delete('/teachers/{id}/subjects/{subject_id}', \App\Controllers\TeacherController::class . ':removeSubject');
     $group->delete('/teachers/{id}', \App\Controllers\TeacherController::class . ':delete');
     $group->get('/careers', \App\Controllers\CareerController::class . ':index');
     $group->get('/careers/{id}', \App\Controllers\CareerController::class . ':show');
@@ -96,9 +100,12 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
 
     // Pagos
     $group->get('/payments', \App\Controllers\PaymentController::class . ':index');
+    $group->get('/payments/collection-planilla', \App\Controllers\PaymentController::class . ':collectionPlanilla');
     $group->get('/payments/{id}', \App\Controllers\PaymentController::class . ':show');
     $group->post('/payments', \App\Controllers\PaymentController::class . ':create');
     $group->put('/payments/{id}', \App\Controllers\PaymentController::class . ':update');
+    $group->post('/reminders/payment', \App\Controllers\ReminderController::class . ':payReminder');
+    $group->post('/reminders/documentation', \App\Controllers\ReminderController::class . ':docReminder');
     $group->delete('/payments/{id}', \App\Controllers\PaymentController::class . ':delete');
 });
 

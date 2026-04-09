@@ -37,6 +37,28 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $stmt->bindParam(':student_id', $id, PDO::PARAM_INT);
             $stmt->execute();
             $student['inscriptions'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Fetch subjects for each inscription
+            foreach ($student['inscriptions'] as &$inscription) {
+                $stmt = $this->db->prepare("
+                    SELECT * FROM subjects 
+                    WHERE career_id = :career_id 
+                    ORDER BY academic_year, quarter, name
+                ");
+                $stmt->bindParam(':career_id', $inscription['career_id'], PDO::PARAM_INT);
+                $stmt->execute();
+                $inscription['subjects'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+            
+            // Fetch all payments
+            $stmt = $this->db->prepare("
+                SELECT * FROM payments 
+                WHERE student_id = :student_id 
+                ORDER BY payment_date DESC
+            ");
+            $stmt->bindParam(':student_id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $student['payments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         return $student;
@@ -53,30 +75,57 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         $sqlParams = [];
 
         if (!empty($params['search'])) {
-            $searchTerm = '%' . $params['search'] . '%';
-            $where[] = "(s.name LIKE :search OR s.lastname LIKE :search OR s.dni LIKE :search)";
-            $sqlParams[':search'] = $searchTerm;
+            $search = trim($params['search']);
+            if (strpos($search, ',') !== false) {
+                // Formato "Apellido, Nombre" (usado por el autocomplete al seleccionar)
+                $parts = explode(',', $search);
+                $lastname = trim($parts[0]);
+                $name = trim($parts[1] ?? '');
+                
+                $where[] = "(s.lastname LIKE :lastname AND s.name LIKE :name)";
+                $sqlParams[':lastname'] = '%' . $lastname . '%';
+                $sqlParams[':name'] = '%' . $name . '%';
+            } else {
+                // Formato simple (DNI, Nombre o Apellido sueltos)
+                $searchTerm = '%' . $search . '%';
+                $where[] = "(s.name LIKE :search OR s.lastname LIKE :search OR s.dni LIKE :search)";
+                $sqlParams[':search'] = $searchTerm;
+            }
         }
 
-        // Si se filtra por carrera, se busca en la tabla de inscripciones
+        // Filtros de Inscripciones (Carrera, Comisión, Turno, Estado)
+        // Se consolidan en un único EXISTS para que los filtros apliquen sobre la MISMA inscripción
+        $insFilters = [];
+        $insParams = [];
+
         if (!empty($params['career'])) {
-            $where[] = "EXISTS (SELECT 1 FROM student_career_inscriptions sci2 JOIN careers c2 ON sci2.career_id = c2.id WHERE sci2.student_id = s.id AND c2.title = :career)";
-            $sqlParams[':career'] = $params['career'];
+            $insFilters[] = "c2.title = :career";
+            $insParams[':career'] = $params['career'];
         }
-
         if (!empty($params['commission'])) {
-            $where[] = "EXISTS (SELECT 1 FROM student_career_inscriptions sci3 WHERE sci3.student_id = s.id AND sci3.commission = :commission)";
-            $sqlParams[':commission'] = $params['commission'];
+            $insFilters[] = "sci2.commission = :commission";
+            $insParams[':commission'] = $params['commission'];
         }
-
         if (!empty($params['shift'])) {
-            $where[] = "EXISTS (SELECT 1 FROM student_career_inscriptions sci4 WHERE sci4.student_id = s.id AND sci4.shift = :shift)";
-            $sqlParams[':shift'] = $params['shift'];
+            $insFilters[] = "sci2.shift = :shift";
+            $insParams[':shift'] = $params['shift'];
+        }
+        if (!empty($params['status'])) {
+            $insFilters[] = "sci2.status = :status";
+            $insParams[':status'] = $params['status'];
+        }
+        if (!empty($params['academic_cycle'])) {
+            $insFilters[] = "sci2.academic_cycle = :academic_cycle";
+            $insParams[':academic_cycle'] = $params['academic_cycle'];
         }
 
-        if (!empty($params['status'])) {
-            $where[] = "EXISTS (SELECT 1 FROM student_career_inscriptions sci5 WHERE sci5.student_id = s.id AND sci5.status = :status)";
-            $sqlParams[':status'] = $params['status'];
+        if (!empty($insFilters)) {
+            $where[] = "EXISTS (
+                SELECT 1 FROM student_career_inscriptions sci2 
+                JOIN careers c2 ON sci2.career_id = c2.id 
+                WHERE sci2.student_id = s.id AND " . implode(" AND ", $insFilters) . "
+            )";
+            $sqlParams = array_merge($sqlParams, $insParams);
         }
 
         $whereSql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
@@ -287,40 +336,55 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         $where = [];
         $sqlParams = [];
 
+        // Basic student filters
         if (!empty($filters['id'])) {
             $where[] = "s.id = :id";
             $sqlParams[':id'] = $filters['id'];
         }
-        if (!empty($filters['career'])) {
-            $where[] = "s.career = :career";
-            $sqlParams[':career'] = $filters['career'];
+        if (!empty($filters['name'])) {
+            $where[] = "s.name LIKE :name";
+            $sqlParams[':name'] = '%' . $filters['name'] . '%';
         }
-        if (!empty($filters['academic_cycle'])) {
-            $where[] = "s.academic_cycle = :academic_cycle";
-            $sqlParams[':academic_cycle'] = $filters['academic_cycle'];
-        }
-        if (!empty($filters['shift'])) {
-            $where[] = "s.shift = :shift";
-            $sqlParams[':shift'] = $filters['shift'];
-        }
-        if (!empty($filters['commission'])) {
-            $where[] = "s.commission = :commission";
-            $sqlParams[':commission'] = $filters['commission'];
-        }
-        if (!empty($filters['academic_year'])) {
-            $where[] = "s.academic_year = :academic_year";
-            $sqlParams[':academic_year'] = $filters['academic_year'];
-        }
-        if (!empty($filters['status'])) {
-            $where[] = "s.status = :status";
-            $sqlParams[':status'] = $filters['status'];
+        if (!empty($filters['lastname'])) {
+            $where[] = "s.lastname LIKE :lastname";
+            $sqlParams[':lastname'] = '%' . $filters['lastname'] . '%';
         }
         if (!empty($filters['scholarship_id'])) {
             $where[] = "s.scholarship_id = :scholarship_id";
             $sqlParams[':scholarship_id'] = $filters['scholarship_id'];
         }
-        if (isset($filters['has_scholarship']) && $filters['has_scholarship'] === true) {
-            $where[] = "s.scholarship_id IS NOT NULL";
+
+        // Inscription filters (exists subquery for multi-career)
+        $insFilters = [];
+        $insParams = [];
+        if (!empty($filters['career'])) {
+            $insFilters[] = "c2.title = :career";
+            $insParams[':career'] = $filters['career'];
+        }
+        if (!empty($filters['academic_cycle'])) {
+            $insFilters[] = "sci2.academic_cycle = :academic_cycle";
+            $insParams[':academic_cycle'] = $filters['academic_cycle'];
+        }
+        if (!empty($filters['shift'])) {
+            $insFilters[] = "sci2.shift = :shift";
+            $insParams[':shift'] = $filters['shift'];
+        }
+        if (!empty($filters['commission'])) {
+            $insFilters[] = "sci2.commission = :commission";
+            $insParams[':commission'] = $filters['commission'];
+        }
+        if (!empty($filters['status'])) {
+            $insFilters[] = "sci2.status = :status";
+            $insParams[':status'] = $filters['status'];
+        }
+
+        if (!empty($insFilters)) {
+            $where[] = "EXISTS (
+                SELECT 1 FROM student_career_inscriptions sci2 
+                JOIN careers c2 ON sci2.career_id = c2.id 
+                WHERE sci2.student_id = s.id AND " . implode(" AND ", $insFilters) . "
+            )";
+            $sqlParams = array_merge($sqlParams, $insParams);
         }
         
         $joinDebt = "";
@@ -330,9 +394,19 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         }
 
         $whereSql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
-        $sql = "SELECT DISTINCT s.*, st.name as scholarship_name 
+        
+        // Select with preferred career (latest active or first found)
+        $sql = "SELECT DISTINCT s.*, st.name as scholarship_name, pref.career_title as career, pref.commission, pref.shift, pref.status, pref.academic_cycle
                 FROM students s 
                 LEFT JOIN scholarship_types st ON s.scholarship_id = st.id 
+                LEFT JOIN (
+                    SELECT sci.student_id, c.title as career_title, sci.commission, sci.shift, sci.status, sci.academic_cycle
+                    FROM student_career_inscriptions sci
+                    JOIN careers c ON sci.career_id = c.id
+                    WHERE (sci.student_id, sci.inscription_date) IN (
+                        SELECT student_id, MAX(inscription_date) FROM student_career_inscriptions GROUP BY student_id
+                    )
+                ) pref ON s.id = pref.student_id
                 $joinDebt
                 $whereSql 
                 ORDER BY s.lastname, s.name";
@@ -427,5 +501,29 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         $stmt = $this->db->prepare("DELETE FROM students WHERE id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         return $stmt->execute();
+    }
+
+    public function inscribeCareer($studentId, array $data) {
+        if (!$this->db) return false;
+        
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, inscription_date)
+                VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :inscription_date)
+            ");
+            
+            return $stmt->execute([
+                ':student_id' => $studentId,
+                ':career_id' => $data['career_id'],
+                ':commission' => $data['commission'] ?? null,
+                ':shift' => $data['shift'] ?? null,
+                ':academic_cycle' => $data['academic_cycle'] ?? null,
+                ':status' => $data['status'] ?? 'En Curso',
+                ':inscription_date' => $data['inscription_date'] ?? date('Y-m-d H:i:s')
+            ]);
+        } catch (\Exception $e) {
+            error_log("Error in inscribeCareer: " . $e->getMessage());
+            return false;
+        }
     }
 }

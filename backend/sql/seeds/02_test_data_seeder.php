@@ -54,12 +54,15 @@ try {
     $scholarship_ids = $db->query("SELECT id FROM scholarship_types")->fetchAll(PDO::FETCH_COLUMN);
 
     // 3. Obtener IDs de Carreras
-    $careers = $db->query("SELECT title FROM careers LIMIT 10")->fetchAll(PDO::FETCH_COLUMN);
+    $careers_data = $db->query("SELECT id, title FROM careers LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
+    $career_titles = array_column($careers_data, 'title');
+    $career_ids_by_title = array_column($careers_data, 'id', 'title');
+    
     $commissions = ['A', 'B', 'C', 'D', 'E'];
     $shifts = ['TM', 'TT', 'TN'];
 
     // 4. Crear 100 Alumnos
-    echo "Generando 100 Alumnos...\n";
+    echo "Generando 100 Alumnos e inscripciones...\n";
     $names = ['Juan', 'Maria', 'Pedro', 'Ana', 'Carlos', 'Laura', 'Luis', 'Sofia', 'Miguel', 'Lucia', 'Jose', 'Elena', 'Ricardo', 'Valentina', 'Diego', 'Martina', 'Fernando', 'Camila', 'Gabriel', 'Victoria'];
     $lastnames = ['Perez', 'Gomez', 'Rodriguez', 'Lopez', 'Garcia', 'Martinez', 'Hernandez', 'Diaz', 'Torres', 'Ramirez', 'Alvarez', 'Flores', 'Benitez', 'Ruiz', 'Silva', 'Medina', 'Vera', 'Castro', 'Suarez', 'Blanco'];
 
@@ -69,7 +72,7 @@ try {
         $name = $names[array_rand($names)];
         $lastname = $lastnames[array_rand($lastnames)];
         $email = strtolower($name . "." . $lastname . $i . "@example.com");
-        $career = $careers[array_rand($careers)];
+        $career_title = $career_titles[array_rand($career_titles)];
         
         // Distribución en comisiones: Asegurar que A-E tengan al menos 10 cada una, el resto aleatorio
         if ($i < 50) {
@@ -82,9 +85,27 @@ try {
         $cycle = $academic_cycles[array_rand($academic_cycles)];
         $scholarship_id = $scholarship_ids[array_rand($scholarship_ids)];
         
+        // Insert Student
         $stmt = $db->prepare("INSERT INTO students (dni, name, lastname, email, career, commission, shift, academic_cycle, scholarship_id, academic_year, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'En Curso')");
-        $stmt->execute([$dni, $name, $lastname, $email, $career, $commission, $shift, $cycle, $scholarship_id, '2024']);
-        $student_ids[] = $db->lastInsertId();
+        $stmt->execute([$dni, $name, $lastname, $email, $career_title, $commission, $shift, $cycle, $scholarship_id, '2024']);
+        $student_id = $db->lastInsertId();
+        $student_ids[] = $student_id;
+
+        // Create main inscription
+        $career_id = $career_ids_by_title[$career_title];
+        $stmt_ins = $db->prepare("INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, inscription_date) VALUES (?, ?, ?, ?, ?, 'En Curso', NOW())");
+        $stmt_ins->execute([$student_id, $career_id, $commission, $shift, '2024-1']); // Using a dummy cycle suffix
+
+        // 6. Generar inscripciones múltiples para al menos 10 alumnos
+        if ($i < 15) { // more than 10 to be safe
+            $other_careers = array_filter($careers_data, function($c) use ($career_id) { return $c['id'] != $career_id; });
+            $other_career = $other_careers[array_rand($other_careers)];
+            $other_commission = $commissions[array_rand($commissions)];
+            $other_shift = $shifts[array_rand($shifts)];
+
+            $stmt_ins->execute([$student_id, $other_career['id'], $other_commission, $other_shift, '2024-1']);
+            echo "Alumno #$student_id ($lastname, $name) inscripto en segunda carrera: {$other_career['title']}\n";
+        }
     }
 
     // 5. Crear 50 Pagos

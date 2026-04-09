@@ -86,4 +86,21 @@ class PaymentController {
         $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al eliminar el pago']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
+
+    public function collectionPlanilla(Request $request, Response $response, $args) {
+        $queryParams = $request->getQueryParams();
+        $filters = [
+            'career_id' => $queryParams['career_id'] ?? null,
+            'cycle' => $queryParams['cycle'] ?? date('Y'),
+            'search' => $queryParams['search'] ?? null
+        ];
+
+        $data = $this->repository->getCollectionPlanilla($filters);
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'data' => $data
+        ]));
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+    }
 }

@@ -3,66 +3,63 @@ export default {
     <div class="fade-in">
         <div class="card-modern p-4 mb-4 bg-light border">
             <h6 class="fw-bold mb-3 text-uppercase small text-muted" style="letter-spacing: 1px;">Filtros de Búsqueda</h6>
-            <div class="row g-3 align-items-end">
-                <!-- Fila 1: Legajo -->
+            
+            <!-- Fila 1: Datos principales -->
+            <div class="row g-3 mb-3">
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">Nro de Legajo</label>
-                    <input type="text" class="form-control form-control-sm" v-model="filters.legajo" placeholder="Ej: 1234">
+                    <label class="form-label small fw-bold text-muted mb-1">Nro de Legajo</label>
+                    <input type="text" class="form-control form-control-sm" v-model="filters.legajo" placeholder="Ej: 1234" @keyup.enter="fetchReport">
                 </div>
-                
-                <div class="col-md-9 text-end">
-                    <button class="btn btn-light btn-sm px-4 me-2" @click="resetFilters" :disabled="loading">
-                        <i class="ph ph-arrow-counter-clockwise me-1"></i> Limpiar
-                    </button>
-                    <button class="btn btn-primary btn-sm px-4 me-2" @click="fetchReport" :disabled="loading">
-                        <i class="ph ph-magnifying-glass me-1" v-if="!loading"></i>
-                        <span class="spinner-border spinner-border-sm me-1" v-else></span>
-                        Buscar
-                    </button>
-                    <button class="btn btn-success btn-sm px-4" @click="exportExcel" :disabled="loading || !students.length">
-                        <i class="ph ph-file-xls me-1"></i> Exportar ({{ students.length }})
-                    </button>
-                </div>
-
-                <!-- Fila 2: Otros Filtros -->
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">Carrera</label>
-                    <select class="form-select form-select-sm" v-model="filters.career">
+                    <label class="form-label small fw-bold text-muted mb-1">Apellido</label>
+                    <input type="text" class="form-control form-control-sm" v-model="filters.lastname" placeholder="Apellido..." @keyup.enter="fetchReport">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Nombre</label>
+                    <input type="text" class="form-control form-control-sm" v-model="filters.name" placeholder="Nombre..." @keyup.enter="fetchReport">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Carrera</label>
+                    <select class="form-select form-select-sm" v-model="filters.career" @change="fetchReport" @keyup.enter="fetchReport">
                         <option value="">Todos</option>
                         <option v-for="c in careers" :key="c.id" :value="c.title">{{ c.title }}</option>
                     </select>
                 </div>
+            </div>
+
+            <!-- Fila 2: Datos académicos -->
+            <div class="row g-3 mb-4">
                 <div class="col-md-1">
-                    <label class="form-label small fw-bold">Período</label>
-                    <select class="form-select form-select-sm" v-model="filters.periodo">
+                    <label class="form-label small fw-bold text-muted mb-1">Período</label>
+                    <select class="form-select form-select-sm" v-model="filters.periodo" @change="fetchReport" @keyup.enter="fetchReport">
                         <option value="">Todos</option>
                         <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold">Turno</label>
-                    <select class="form-select form-select-sm" v-model="filters.turno">
+                    <label class="form-label small fw-bold text-muted mb-1">Turno</label>
+                    <select class="form-select form-select-sm" v-model="filters.turno" @change="fetchReport" @keyup.enter="fetchReport">
                         <option value="">Todos</option>
                         <option v-for="s in shifts" :key="s" :value="s">{{ s }}</option>
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label small fw-bold">Comisión</label>
-                    <select class="form-select form-select-sm" v-model="filters.comision">
+                    <label class="form-label small fw-bold text-muted mb-1">Comisión</label>
+                    <select class="form-select form-select-sm" v-model="filters.comision" @change="fetchReport" @keyup.enter="fetchReport">
                         <option value="">Todos</option>
                         <option v-for="c in commissions" :key="c" :value="c">{{ c }}</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold">Ciclo Lectivo</label>
-                    <select class="form-select form-select-sm" v-model="filters.ciclo">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Ciclo Lectivo</label>
+                    <select class="form-select form-select-sm" v-model="filters.ciclo" @change="fetchReport" @keyup.enter="fetchReport">
                         <option value="">Todos</option>
                         <option v-for="y in activeCycles" :key="y.id" :value="y.name">{{ y.name }}</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold">Estado</label>
-                    <select class="form-select form-select-sm" v-model="filters.estado">
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold text-muted mb-1">Estado</label>
+                    <select class="form-select form-select-sm" v-model="filters.estado" @change="fetchReport" @keyup.enter="fetchReport">
                         <option value="">Todos</option>
                         <option value="En Curso">En Curso</option>
                         <option value="Abandono">Abandono</option>
@@ -70,29 +67,48 @@ export default {
                         <option value="Finalizó Cursada">Finalizó Cursada</option>
                     </select>
                 </div>
-                
-                <div class="col-md-auto d-flex align-items-center mb-1">
-                    <div class="form-check form-check-inline me-3">
-                        <input class="form-check-input" type="checkbox" v-model="filters.deudores" id="checkDeudores">
-                        <label class="form-check-label small fw-bold" for="checkDeudores">Deudores</label>
-                    </div>
-                    <div class="form-check form-check-inline me-3">
-                        <input class="form-check-input" type="checkbox" v-model="filters.becados" id="checkBecados">
-                        <label class="form-check-label small fw-bold" for="checkBecados">Becados</label>
+            </div>
+
+            <!-- Fila 3: Becas y Acciones -->
+            <div class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <div class="bg-white p-2 rounded border d-flex gap-3 justify-content-center shadow-xs">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" v-model="filters.deudores" id="checkDeudores">
+                            <label class="form-check-label small fw-bold" for="checkDeudores">Deudores</label>
+                        </div>
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" v-model="filters.becados" id="checkBecados">
+                            <label class="form-check-label small fw-bold" for="checkBecados">Becados</label>
+                        </div>
                     </div>
                 </div>
-
                 <div class="col-md-4">
-                    <label class="form-label small fw-bold">Tipo Beca</label>
-                    <select class="form-select form-select-sm" v-model="filters.scholarship_id" :disabled="!filters.becados">
-                        <option value="">Todas</option>
-                        <option v-for="s in activeScholarships" :key="s.id" :value="s.id">{{ s.name }}</option>
-                    </select>
+                    <div class="bg-white p-2 rounded border shadow-xs d-flex align-items-center gap-2">
+                        <label class="small fw-bold mb-0 text-muted text-nowrap">Tipo Beca</label>
+                        <select class="form-select form-select-sm border-0 bg-light" v-model="filters.scholarship_id" :disabled="!filters.becados">
+                            <option value="">Todas</option>
+                            <option v-for="s in activeScholarships" :key="s.id" :value="s.id">{{ s.name }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-5 text-end">
+                    <button class="btn btn-outline-secondary btn-sm px-3 me-2" @click="resetFilters" :disabled="loading">
+                        <i class="ph ph-arrow-counter-clockwise me-1"></i> Limpiar
+                    </button>
+                    <button class="btn btn-primary btn-sm px-4 me-2 shadow-sm" @click="fetchReport" :disabled="loading">
+                        <i class="ph ph-magnifying-glass me-1" v-if="!loading"></i>
+                        <span class="spinner-border spinner-border-sm me-1" v-else></span>
+                        Buscar
+                    </button>
+                    <button class="btn btn-success btn-sm px-4 shadow-sm" @click="exportExcel" :disabled="loading || !students.length">
+                        <i class="ph ph-file-xls me-1"></i> Exportar ({{ students.length }})
+                    </button>
                 </div>
             </div>
             
-            <div class="mt-3 small text-muted">
-                Cantidad de alumnos: <span class="fw-bold">{{ students.length }}</span>
+            <div class="mt-4 pt-3 border-top small text-muted">
+                Cantidad de alumnos: <span class="fw-bold fs-6 text-dark">{{ students.length }}</span>
             </div>
         </div>
 
@@ -134,9 +150,29 @@ export default {
                                 <span v-else class="text-muted small">-</span>
                             </td>
                             <td class="text-center pe-4">
-                                <button class="btn btn-ghost-primary btn-icon btn-sm rounded-circle" @click="editStudent(student)" title="Editar estado/beca">
-                                    <i class="ph ph-note-pencil fs-5"></i>
-                                </button>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <router-link :to="'/student/detail/' + student.id" class="btn btn-ghost-info btn-icon btn-sm rounded-circle" title="Ver detalle">
+                                        <i class="ph ph-eye fs-5"></i>
+                                    </router-link>
+                                    <router-link :to="'/students/inscription?id=' + student.id" class="btn btn-ghost-warning btn-icon btn-sm rounded-circle" title="Inscripción">
+                                        <i class="ph ph-user-plus fs-5"></i>
+                                    </router-link>
+                                    <router-link :to="'/student/form?id=' + student.id" class="btn btn-ghost-primary btn-icon btn-sm rounded-circle" title="Editar">
+                                        <i class="ph ph-pencil-simple fs-5"></i>
+                                    </router-link>
+                                    <router-link :to="'/student/grades/' + student.id" class="btn btn-ghost-success btn-icon btn-sm rounded-circle" title="Calificaciones">
+                                        <i class="ph ph-graduation-cap fs-5"></i>
+                                    </router-link>
+                                    <router-link :to="'/student/collect/' + student.id" class="btn btn-ghost-dark btn-icon btn-sm rounded-circle" title="Cobrar">
+                                        <i class="ph ph-currency-dollar fs-5"></i>
+                                    </router-link>
+                                    <router-link :to="'/students/promotion?student_id=' + student.id" class="btn btn-ghost-secondary btn-icon btn-sm rounded-circle" title="Promocionar">
+                                        <i class="ph ph-fast-forward fs-5"></i>
+                                    </router-link>
+                                    <button class="btn btn-ghost-danger btn-icon btn-sm rounded-circle" @click="deleteStudent(student.id)" title="Eliminar/Desactivar">
+                                        <i class="ph ph-trash fs-5"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="!students.length && !loading">
@@ -161,6 +197,8 @@ export default {
             scholarships: [],
             filters: {
                 legajo: '',
+                lastname: '',
+                name: '',
                 career: '',
                 periodo: '',
                 turno: '',
@@ -210,6 +248,8 @@ export default {
         resetFilters() {
             this.filters = {
                 legajo: '',
+                lastname: '',
+                name: '',
                 career: '',
                 periodo: '',
                 turno: '',
@@ -284,7 +324,40 @@ export default {
             const qs = new URLSearchParams(this.filters).toString();
             window.location.href = '/api/students/export?' + qs;
         },
-        async editStudent(student) {
+        viewStudent(id) {
+            this.$router.push('/student/detail/' + id);
+        },
+        editStudentForm(id) {
+            this.$router.push('/student/form?id=' + id);
+        },
+        async deleteStudent(id) {
+            const result = await Swal.fire({
+                title: '¿Está seguro?',
+                text: "El alumno será eliminado de la base de datos.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+                    const res = await response.json();
+                    if (res.status === 'success') {
+                        Swal.fire('¡Eliminado!', 'El estudiante ha sido eliminado.', 'success');
+                        this.students = this.students.filter(s => s.id !== id);
+                    } else {
+                        Swal.fire('Error', res.error || 'No se pudo eliminar', 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Error de conexión', 'error');
+                }
+            }
+        },
+        async editStudentScholarship(student) {
             const scholarshipOptions = this.activeScholarships.map(s => `<option value="${s.id}" ${student.scholarship_id == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
             
             const { value: formValues } = await Swal.fire({

@@ -53,14 +53,15 @@ class PaymentRepositoryMySQL {
         }
 
         if (!empty($filters['commission'])) {
-            $sql .= " AND s.commission = :commission";
+            // Buscamos alumnos que tengan AL MENOS UNA inscripción en esa comisión
+            $sql .= " AND EXISTS (SELECT 1 FROM student_career_inscriptions sci WHERE sci.student_id = s.id AND sci.commission = :commission)";
             $params[':commission'] = $filters['commission'];
         }
 
         $sql .= " ORDER BY p.payment_date DESC";
 
         // Obtener total sin límite para el resumen
-        $countSql = "SELECT COUNT(*) as total_count, SUM(p.amount) as total_amount " . substr($sql, strpos($sql, "FROM"));
+        $countSql = "SELECT COUNT(*) as total_count, SUM(p.amount) as total_amount, AVG(p.amount) as avg_amount, MIN(p.amount) as min_amount " . substr($sql, strpos($sql, "FROM"));
         // Limpiamos el countSql de ORDER BY para evitar errores en algunas versiones
         $countSql = substr($countSql, 0, strpos($countSql, "ORDER BY") ?: strlen($countSql));
         
@@ -87,6 +88,8 @@ class PaymentRepositoryMySQL {
             'data' => $stmt->fetchAll(PDO::FETCH_ASSOC),
             'total_count' => (int)$totals['total_count'],
             'total_amount' => (float)$totals['total_amount'],
+            'avg_amount' => (float)($totals['avg_amount'] ?? 0),
+            'min_amount' => (float)($totals['min_amount'] ?? 0),
             'page' => $page,
             'per_page' => $perPage
         ];
@@ -138,5 +141,69 @@ class PaymentRepositoryMySQL {
         if (!$this->db) return false;
         $stmt = $this->db->prepare("DELETE FROM payments WHERE id = :id");
         return $stmt->execute([':id' => $id]);
+    }
+
+    public function getCollectionPlanilla(array $filters = []) {
+        if (!$this->db) return [];
+
+        $where = ["1=1"];
+        $params = [];
+
+        if (!empty($filters['career_id'])) {
+            $where[] = "sci.career_id = :career_id";
+            $params[':career_id'] = $filters['career_id'];
+        }
+        
+        if (!empty($filters['search'])) {
+            $where[] = "(s.name LIKE :search OR s.lastname LIKE :search OR s.dni LIKE :search)";
+            $params[':search'] = "%" . $filters['search'] . "%";
+        }
+
+        $whereSql = implode(" AND ", $where);
+
+        $sql = "SELECT 
+                    c.id as career_id,
+                    c.title as career_title,
+                    s.id as student_id,
+                    s.name as student_name,
+                    s.lastname as student_lastname,
+                    s.dni as student_dni,
+                    sci.commission,
+                    sci.shift,
+                    sci.academic_cycle,
+                    (SELECT SUM(p.amount) FROM payments p WHERE p.student_id = s.id) as total_paid,
+                    (SELECT COUNT(*) FROM payments p WHERE p.student_id = s.id AND p.concept LIKE 'Cuota%') as installments_paid
+                FROM students s
+                JOIN student_career_inscriptions sci ON s.id = sci.student_id
+                JOIN careers c ON sci.career_id = c.id
+                WHERE $whereSql
+                ORDER BY c.title, s.lastname, s.name";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Group by career
+        $grouped = [];
+        foreach ($results as $row) {
+            $careerId = $row['career_id'];
+            if (!isset($grouped[$careerId])) {
+                $grouped[$careerId] = [
+                    'id' => $careerId,
+                    'title' => $row['career_title'],
+                    'students' => []
+                ];
+            }
+            
+            // Basic debt calculation: 
+            // Assume 1 registration + X installments should be paid by now (April = 1 installment)
+            $currentMonth = (int)date('n');
+            $expectedInstallments = max(0, $currentMonth - 3); // April is 4th month, so 1 installment
+            $row['has_debt'] = ($row['installments_paid'] < $expectedInstallments);
+            
+            $grouped[$careerId]['students'][] = $row;
+        }
+
+        return array_values($grouped);
     }
 }

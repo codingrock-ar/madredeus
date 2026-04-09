@@ -148,4 +148,35 @@ class TeacherRepositoryMySQL {
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         return $stmt->execute();
     }
+
+    public function getSubjects($teacherId) {
+        if (!$this->db) return [];
+        $stmt = $this->db->prepare("
+            SELECT s.*, c.title as career_title 
+            FROM subjects s 
+            JOIN teacher_subjects ts ON s.id = ts.subject_id 
+            LEFT JOIN careers c ON s.career_id = c.id
+            WHERE ts.teacher_id = :teacher_id
+            ORDER BY c.title, s.name
+        ");
+        $stmt->bindParam(':teacher_id', $teacherId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function assignSubject($teacherId, $subjectId) {
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("INSERT IGNORE INTO teacher_subjects (teacher_id, subject_id) VALUES (:teacher_id, :subject_id)");
+        $stmt->bindParam(':teacher_id', $teacherId, PDO::PARAM_INT);
+        $stmt->bindParam(':subject_id', $subjectId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    public function removeSubject($teacherId, $subjectId) {
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("DELETE FROM teacher_subjects WHERE teacher_id = :teacher_id AND subject_id = :subject_id");
+        $stmt->bindParam(':teacher_id', $teacherId, PDO::PARAM_INT);
+        $stmt->bindParam(':subject_id', $subjectId, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
 }

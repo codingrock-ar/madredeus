@@ -8,165 +8,217 @@ export default {
                 </button>
             </div>
 
-            <!-- Filtros -->
+            <!-- Modos de Vista -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <!-- Fila 1 -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted mb-1">Buscar Alumno (Nombre/DNI)</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white border-end-0"><i class="ph ph-magnifying-glass text-muted"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0" v-model="filters.search" @input="fetchPayments" placeholder="Ej: Perez o 30000000...">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted mb-1">Carrera</label>
-                            <select class="form-select form-select-sm" v-model="filters.career" @change="fetchPayments">
-                                <option value="">Todas las Carreras</option>
-                                <option v-for="c in careers" :key="c.id" :value="c.title">{{ c.title }}</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted mb-1">Comisión</label>
-                            <select class="form-select form-select-sm" v-model="filters.commission" @change="fetchPayments">
-                                <option value="">Todas las Comisiones</option>
-                                <option value="1er Año">1er Año</option>
-                                <option value="2do Año">2do Año</option>
-                                <option value="3er Año">3er Año</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Fila 2 -->
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted mb-1">Desde</label>
-                            <input type="date" class="form-control form-control-sm" v-model="filters.start_date" @change="fetchPayments">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted mb-1">Hasta</label>
-                            <input type="date" class="form-control form-control-sm" v-model="filters.end_date" @change="fetchPayments">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted mb-1">Método de Pago</label>
-                            <select class="form-select form-select-sm" v-model="filters.method" @change="fetchPayments">
-                                <option value="">Todos los Métodos</option>
-                                <option value="Efectivo">Efectivo</option>
-                                <option value="Transferencia">Transferencia</option>
-                                <option value="Tarjeta">Tarjeta</option>
-                                <option value="Depósito">Depósito</option>
-                                <option value="Otro">Otro</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button class="btn btn-light btn-sm w-100 border" @click="resetFilters">
-                                <i class="ph ph-arrow-counter-clockwise me-1"></i>Limpiar Filtros
-                            </button>
-                        </div>
-                    </div>
+                <div class="card-body p-2 d-flex gap-2">
+                    <button class="btn flex-grow-1 border-0" 
+                            :class="viewMode === 'history' ? 'btn-primary shadow-sm' : 'btn-light text-muted'"
+                            @click="viewMode = 'history'">
+                        <i class="ph ph-clock-counter-clockwise me-2"></i>Historial de Pagos
+                    </button>
+                    <button class="btn flex-grow-1 border-0" 
+                            :class="viewMode === 'planilla' ? 'btn-primary shadow-sm' : 'btn-light text-muted'"
+                            @click="viewMode = 'planilla'">
+                        <i class="ph ph-clipboard-text me-2"></i>Planilla de Cobro
+                    </button>
                 </div>
             </div>
 
-            <!-- Resumen Informativo -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm bg-primary text-white">
-                        <div class="card-body p-3 text-center">
-                            <div class="small opacity-75 mb-1">Total recaudado</div>
-                            <div class="h3 mb-0">$ {{ formatCurrency(totalAmount) }}</div>
+            <!-- Contenido según modo -->
+            <div v-if="viewMode === 'history'" class="fade-in">
+                <!-- Filtros Historial -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-muted mb-1">Buscar Alumno (Nombre/DNI)</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white border-end-0"><i class="ph ph-magnifying-glass text-muted"></i></span>
+                                    <input type="text" class="form-control border-start-0 ps-0" v-model="filters.search" @input="fetchPayments" placeholder="Ej: Perez o 30000000...">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-muted mb-1">Carrera</label>
+                                <select class="form-select form-select-sm" v-model="filters.career" @change="fetchPayments">
+                                    <option value="">Todas las Carreras</option>
+                                    <option v-for="c in careers" :key="c.id" :value="c.title">{{ c.title }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-muted mb-1">Comisión</label>
+                                <select class="form-select form-select-sm" v-model="filters.commission" @change="fetchPayments">
+                                    <option value="">Todas las Comisiones</option>
+                                    <option v-for="com in commissions" :key="com" :value="com">Comisión {{ com }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">Desde</label>
+                                <input type="date" class="form-control form-control-sm" v-model="filters.start_date" @change="fetchPayments">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">Hasta</label>
+                                <input type="date" class="form-control form-control-sm" v-model="filters.end_date" @change="fetchPayments">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">Método</label>
+                                <select class="form-select form-select-sm" v-model="filters.method" @change="fetchPayments">
+                                    <option value="">Todos</option>
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Transferencia">Transferencia</option>
+                                    <option value="Tarjeta">Tarjeta</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button class="btn btn-light btn-sm w-100 border" @click="resetFilters">Reset</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-3 text-center">
-                            <div class="small text-muted mb-1">Total Operaciones</div>
+
+                <!-- Resumen -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm bg-primary text-white h-100 p-3">
+                            <label class="small opacity-75 fw-bold text-uppercase">Total Recaudado</label>
+                            <div class="h3 mb-0">$ {{ formatCurrency(totalAmount) }}</div>
+                            <div class="extra-small opacity-75 mt-1">{{ totalCount }} pagos</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100 p-3">
+                            <label class="small text-muted fw-bold text-uppercase">Promedio</label>
+                            <div class="h3 mb-0">$ {{ formatCurrency(avgAmount) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100 p-3">
+                            <label class="small text-muted fw-bold text-uppercase">Mínimo</label>
+                            <div class="h3 mb-0">$ {{ formatCurrency(minAmount) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100 p-3">
+                            <label class="small text-muted fw-bold text-uppercase">Operaciones</label>
                             <div class="h3 mb-0">{{ totalCount }}</div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Tabla de Pagos -->
-            <div class="card border-0 shadow-sm">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="border-0 small fw-bold">Fecha</th>
-                                <th class="border-0 small fw-bold">Alumno</th>
-                                <th class="border-0 small fw-bold">Concepto</th>
-                                <th class="border-0 small fw-bold">Método</th>
-                                <th class="border-0 small fw-bold text-end">Monto</th>
-                                <th class="border-0 small fw-bold text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-if="loading">
-                                <td colspan="6" class="text-center py-4">
-                                    <div class="spinner-border spinner-border-sm text-primary me-2"></div>
-                                    Cargando pagos...
-                                </td>
-                            </tr>
-                            <tr v-else v-for="p in payments" :key="p.id">
-                                <td>
-                                    <span class="small">{{ formatDate(p.payment_date) }}</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold">{{ p.student_lastname }}, {{ p.student_name }}</div>
-                                    <div class="small text-muted">DNI: {{ p.student_dni || 'N/A' }} | ID: {{ p.student_id }}</div>
-                                </td>
-                                <td>{{ p.concept }}</td>
-                                <td>
-                                    <span class="badge bg-soft-info text-info small border-info border">{{ p.payment_method }}</span>
-                                </td>
-                                <td class="text-end fw-bold text-success">
-                                    $ {{ formatCurrency(p.amount) }}
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        <button class="btn btn-ghost-primary btn-icon btn-sm rounded-circle" @click="editPayment(p)" title="Editar">
-                                            <i class="ph ph-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-ghost-danger btn-icon btn-sm rounded-circle" @click="deletePayment(p.id)" title="Eliminar">
-                                            <i class="ph ph-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="!loading && payments.length === 0">
-                                <td colspan="6" class="text-center py-4 text-muted">No se encontraron pagos con los filtros seleccionados</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Paginación -->
-                <div class="card-footer bg-white border-0 py-3" v-if="totalPages > 1">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="small text-muted">
-                            Mostrando {{ payments.length }} de {{ totalCount }} registros
-                        </div>
-                        <nav>
+                <!-- Tabla -->
+                <div class="card border-0 shadow-sm">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Alumno</th>
+                                    <th>Concepto</th>
+                                    <th class="text-end">Monto</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="p in payments" :key="p.id">
+                                    <td class="small">{{ formatDate(p.payment_date) }}</td>
+                                    <td>
+                                        <div class="fw-bold small">{{ p.student_lastname }}, {{ p.student_name }}</div>
+                                        <div class="extra-small text-muted">{{ p.student_dni }}</div>
+                                    </td>
+                                    <td class="small">{{ p.concept }}</td>
+                                    <td class="text-end fw-bold text-success">$ {{ formatCurrency(p.amount) }}</td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-1">
+                                            <button class="btn btn-ghost-primary btn-icon btn-sm rounded-circle" @click="editPayment(p)"><i class="ph ph-pencil"></i></button>
+                                            <button class="btn btn-ghost-danger btn-icon btn-sm rounded-circle" @click="deletePayment(p.id)"><i class="ph ph-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer bg-white border-0 py-3" v-if="totalPages > 1">
+                        <nav class="d-flex justify-content-between align-items-center">
+                            <span class="extra-small text-muted">Página {{ page }} de {{ totalPages }}</span>
                             <ul class="pagination pagination-sm mb-0">
-                                <li class="page-item" :class="{ disabled: page === 1 }">
-                                    <a class="page-link" href="#" @click.prevent="changePage(page - 1)">Anterior</a>
-                                </li>
-                                <li class="page-item" v-for="p in totalPages" :key="p" :class="{ active: p === page }">
-                                    <a class="page-link" href="#" @click.prevent="changePage(p)">{{ p }}</a>
-                                </li>
-                                <li class="page-item" :class="{ disabled: page === totalPages }">
-                                    <a class="page-link" href="#" @click.prevent="changePage(page + 1)">Siguiente</a>
-                                </li>
+                                <li class="page-item" :class="{ disabled: page === 1 }"><a class="page-link" href="#" @click.prevent="changePage(page - 1)">Ant.</a></li>
+                                <li class="page-item" :class="{ disabled: page === totalPages }"><a class="page-link" href="#" @click.prevent="changePage(page + 1)">Sig.</a></li>
                             </ul>
                         </nav>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Modal para Nuevo/Editar Pago se maneja con SweetAlert2 para simplicidad -->
+            <div v-else-if="viewMode === 'planilla'" class="fade-in">
+                <!-- Filtros Planilla -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control form-control-sm" v-model="filters.search" @input="fetchPlanilla" placeholder="Filtrar alumnos...">
+                            </div>
+                            <div class="col-md-6">
+                                <select class="form-select form-select-sm" v-model="filters.career_id" @change="fetchPlanilla">
+                                    <option value="">Todas las carreras</option>
+                                    <option v-for="c in careers" :key="c.id" :value="c.id">{{ c.title }}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Planilla por Carrera -->
+                <div v-if="loadingPlanilla" class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+                <div v-else>
+                    <div v-for="career in planilla" :key="career.id" class="mb-5">
+                        <h5 class="fw-bold mb-3 border-bottom pb-2 text-primary">{{ career.title }}</h5>
+                        <div class="card border-0 shadow-sm">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead class="bg-light extra-small fw-bold">
+                                        <tr>
+                                            <th class="ps-3">Alumno</th>
+                                            <th class="text-center">Comisión</th>
+                                            <th class="text-end">Pagado</th>
+                                            <th class="text-center">Cuotas</th>
+                                            <th class="text-center">Estado</th>
+                                            <th class="pe-3 text-center"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="s in career.students" :key="s.student_id" class="small">
+                                            <td class="ps-3">
+                                                <div class="fw-bold">{{ s.student_lastname }}, {{ s.student_name }}</div>
+                                                <div class="extra-small text-muted">{{ s.student_dni }}</div>
+                                            </td>
+                                            <td class="text-center">{{ s.commission }}</td>
+                                            <td class="text-end fw-bold">$ {{ formatCurrency(s.total_paid) }}</td>
+                                            <td class="text-center">{{ s.installments_paid }} / 10</td>
+                                            <td class="text-center">
+                                                <span :class="s.has_debt ? 'badge bg-soft-danger text-danger' : 'badge bg-soft-success text-success'">
+                                                    {{ s.has_debt ? 'DEUDA' : 'AL DÍA' }}
+                                                </span>
+                                            </td>
+                                            <td class="pe-3 text-center">
+                                                <div class="d-flex gap-1 justify-content-center">
+                                                    <router-link :to="'/student/collect/' + s.student_id" class="btn btn-primary btn-xs py-1 px-2">Cobrar</router-link>
+                                                    <button v-if="s.has_debt" class="btn btn-soft-warning btn-xs py-1 px-2" @click="sendPaymentReminder(s)" title="Enviar Recordatorio de Pago">
+                                                        <i class="ph ph-bell"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     `,
     data() {
         const today = new Date();
@@ -177,17 +229,24 @@ export default {
             careers: [],
             commissions: ['A', 'B', 'C', 'D', 'E', 'Z'],
             totalAmount: 0,
+            avgAmount: 0,
+            minAmount: 0,
             totalCount: 0,
             loading: false,
             page: 1,
             perPage: 20,
+            viewMode: 'history', // 'history' o 'planilla'
+            loadingPlanilla: false,
+            planilla: [],
             filters: {
                 search: '',
                 career: '',
+                career_id: '',
                 commission: '',
                 start_date: firstDay.toISOString().split('T')[0],
                 end_date: today.toISOString().split('T')[0],
-                method: ''
+                method: '',
+                cycle: today.getFullYear()
             }
         };
     },
@@ -199,6 +258,15 @@ export default {
     mounted() {
         this.fetchCareers();
         this.fetchPayments();
+    },
+    watch: {
+        viewMode(val) {
+            if (val === 'planilla') {
+                this.fetchPlanilla();
+            } else {
+                this.fetchPayments();
+            }
+        }
     },
     methods: {
         async fetchCareers() {
@@ -232,6 +300,8 @@ export default {
                 if (result.status === 'success') {
                     this.payments = result.data.data;
                     this.totalAmount = result.data.total_amount;
+                    this.avgAmount = result.data.avg_amount;
+                    this.minAmount = result.data.min_amount;
                     this.totalCount = result.data.total_count;
                 }
             } catch (error) {
@@ -240,9 +310,57 @@ export default {
                 this.loading = false;
             }
         },
+        async fetchPlanilla() {
+            this.loadingPlanilla = true;
+            try {
+                const params = new URLSearchParams({
+                    career_id: this.filters.career_id,
+                    search: this.filters.search,
+                    cycle: this.filters.cycle
+                });
+                const response = await fetch(`/api/payments/collection-planilla?${params}`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.planilla = result.data;
+                }
+            } catch (err) {
+                console.error("Error fetching planilla:", err);
+            } finally {
+                this.loadingPlanilla = false;
+            }
+        },
         changePage(p) {
             this.page = p;
             this.fetchPayments(false);
+        },
+        async sendPaymentReminder(student) {
+            try {
+                const response = await fetch('/api/reminders/payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        student_id: student.student_id,
+                        debt: (student.expected_installments - student.installments_paid) * 5000 // Heuristic for now
+                    })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Recordatorio Enviado',
+                        text: `Se ha enviado un correo a ${student.student_name} avisando sobre la deuda.`,
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                } else {
+                    Swal.fire('Error', result.message, 'error');
+                }
+            } catch (err) {
+                console.error("Error sending reminder:", err);
+                Swal.fire('Error', 'No se pudo enviar el recordatorio.', 'error');
+            }
         },
         resetFilters() {
             const today = new Date();
@@ -484,6 +602,41 @@ export default {
                 } catch (error) {
                     Swal.fire('Error', 'No se pudo actualizar el pago.', 'error');
                 }
+            }
+        },
+        async sendPaymentReminder(student) {
+            const confirmed = await Swal.fire({
+                title: '¿Enviar recordatorio de pago?',
+                text: `Se enviará un email a ${student.student_name} notificando su deuda.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, enviar'
+            });
+
+            if (!confirmed.isConfirmed) return;
+
+            try {
+                const response = await fetch('/api/reminders/payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_id: student.student_id })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Recordatorio Enviado',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                } else {
+                    Swal.fire('Error', result.message, 'error');
+                }
+            } catch (error) {
+                console.error("Error sending reminder:", error);
+                Swal.fire('Error', 'No se pudo enviar el recordatorio.', 'error');
             }
         }
     }

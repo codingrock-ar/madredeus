@@ -18,16 +18,13 @@ export default {
                     <div class="col-md-3">
                         <label class="form-label small fw-bold">Año Lectivo</label>
                         <select class="form-select border-0 shadow-sm" v-model="filters.year">
-                            <option value="2024">2024</option>
-                            <option value="2023">2023</option>
+                            <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small fw-bold">Ciclo Lectivo</label>
+                        <label class="form-label small fw-bold">Ciclo / Cuatrimestre</label>
                         <select class="form-select border-0 shadow-sm" v-model="filters.cycle">
-                            <option value="1">1° Ciclo</option>
-                            <option value="2">2° Ciclo</option>
-                            <option value="3">3° Ciclo</option>
+                            <option v-for="c in cycles" :key="c.id" :value="c.name">{{ c.name }}</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -126,20 +123,32 @@ export default {
             loading: false,
             updating: false,
             careers: [],
+            cycles: [],
             students: [],
             selectedIds: [],
             selectAll: false,
             destinationCommission: 'B',
             filters: {
-                year: '2024',
-                cycle: '1',
-                career: 'Enfermería Profesional',
+                year: new Date().getFullYear(),
+                cycle: '',
+                career: '',
                 commission: 'A'
             }
         }
     },
+    computed: {
+        availableYears() {
+            const currentYear = new Date().getFullYear();
+            return [currentYear, currentYear - 1, currentYear + 1];
+        }
+    },
     async mounted() {
-        await this.fetchCareers();
+        await Promise.all([
+            this.fetchCareers(),
+            this.fetchCycles()
+        ]);
+        if (this.careers.length > 0) this.filters.career = this.careers[0].title;
+        if (this.cycles.length > 0) this.filters.cycle = this.cycles[0].name;
     },
     methods: {
         async fetchCareers() {
@@ -151,6 +160,17 @@ export default {
                 }
             } catch (error) {
                 console.error("Error fetching careers:", error);
+            }
+        },
+        async fetchCycles() {
+            try {
+                const response = await fetch(window.API_BASE + '/api/config/cycles');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.cycles = result.data.map(c => ({ id: c.id, name: c.name }));
+                }
+            } catch (error) {
+                console.error("Error fetching cycles:", error);
             }
         },
         async goToStep2() {

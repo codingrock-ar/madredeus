@@ -25,6 +25,9 @@ export default {
                     <li class="nav-item">
                         <a class="nav-link" :class="{active: tab === 'req_cost'}" href="#" @click.prevent="tab = 'req_cost'">Requisitos y Costo</a>
                     </li>
+                    <li class="nav-item" v-if="teacher.id">
+                        <a class="nav-link" :class="{active: tab === 'subjects'}" href="#" @click.prevent="tab = 'subjects'">Materias Asignadas</a>
+                    </li>
                 </ul>
 
                 <form @submit.prevent="saveTeacher">
@@ -252,6 +255,79 @@ export default {
                         </div>
                     </div>
                     
+                    <div v-show="tab === 'subjects'" class="fade-in" v-if="teacher.id">
+                        <div class="row">
+                            <div class="col-md-8 border-end">
+                                <h5 class="text-primary mb-3 d-flex align-items-center justify-content-between">
+                                    <span><i class="ph ph-books me-2"></i>Materias Asignadas</span>
+                                    <span class="badge bg-soft-primary text-primary fs-6">{{ assignedSubjects.length }}</span>
+                                </h5>
+                                
+                                <div class="table-responsive bg-white rounded border shadow-sm" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="bg-light extra-small fw-bold sticky-top">
+                                            <tr>
+                                                <th class="ps-3">Materia</th>
+                                                <th>Carrera</th>
+                                                <th class="text-center">Año / Cuat.</th>
+                                                <th class="text-end pe-3">Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-if="assignedSubjects.length === 0">
+                                                <td colspan="4" class="text-center py-4 text-muted small">No hay materias asignadas a este docente.</td>
+                                            </tr>
+                                            <tr v-for="s in assignedSubjects" :key="s.id" class="small">
+                                                <td class="ps-3 fw-bold">{{ s.name }}</td>
+                                                <td class="text-muted">{{ s.career_title }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-light text-dark border">{{ s.academic_year }}º Año</span>
+                                                    <span class="badge bg-light text-dark border ms-1">{{ s.quarter }}º Cuat.</span>
+                                                </td>
+                                                <td class="text-end pe-3">
+                                                    <button type="button" class="btn btn-outline-danger btn-xs" @click="removeSubject(s.id)">
+                                                        <i class="ph ph-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="bg-light rounded p-3 h-100">
+                                    <h6 class="fw-bold mb-3 small"><i class="ph ph-plus-circle me-1"></i>Asignar Nueva Materia</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label extra-small fw-bold">Carrera</label>
+                                        <select class="form-select form-select-sm" v-model="selectedCareerId" @change="selectedSubjectId = ''">
+                                            <option value="">Todas las carreras</option>
+                                            <option v-for="c in careers" :key="c.id" :value="c.id">{{ c.title }}</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label extra-small fw-bold">Materia</label>
+                                        <select class="form-select form-select-sm" v-model="selectedSubjectId">
+                                            <option value="" disabled>Seleccionar materia...</option>
+                                            <option v-for="s in filteredAvailableSubjects" :key="s.id" :value="s.id">
+                                                {{ s.name }} ({{ s.academic_year }}º)
+                                            </option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button type="button" class="btn btn-primary btn-sm w-100 shadow-sm" 
+                                            :disabled="!selectedSubjectId || assigning" 
+                                            @click="assignSubject">
+                                        <span v-if="assigning" class="spinner-border spinner-border-sm me-1"></span>
+                                        <i v-else class="ph ph-link-simple me-1"></i>Asignar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="mt-5 pt-4 border-top text-end">
                         <button type="button" class="btn btn-light me-2 btn-lg" @click="$router.push('/teachers')">Cancelar</button>
                         <button type="submit" class="btn btn-primary px-5 btn-lg shadow-sm" :disabled="loading">
@@ -319,7 +395,27 @@ export default {
             uploading: false,
             error: null,
             cropper: null,
-            cropModal: null
+            cropModal: null,
+            assignedSubjects: [],
+            allSubjects: [],
+            careers: [],
+            selectedCareerId: '',
+            selectedSubjectId: '',
+            assigning: false
+        }
+    },
+    computed: {
+        filteredAvailableSubjects() {
+            return this.allSubjects.filter(s => {
+                // Not already assigned
+                const isAssigned = this.assignedSubjects.some(as => as.id === s.id);
+                if (isAssigned) return false;
+                
+                // Matches career filter
+                if (this.selectedCareerId && s.career_id != this.selectedCareerId) return false;
+                
+                return true;
+            });
         }
     },
     methods: {
@@ -341,12 +437,101 @@ export default {
                     data.req_dni_copy = data.req_dni_copy == 1;
                     data.req_degree_copy = data.req_degree_copy == 1;
                     this.teacher = data;
+                    
+                    // Fetch additional data for teacher
+                    this.fetchAssignedSubjects(id);
+                    this.fetchAllSubjects();
+                    this.fetchCareers();
                 } else {
                     this.error = result.error || 'Error cargando datos del docente';
                 }
             } catch (error) {
                 console.error("Error:", error);
                 this.error = "Error de conexión";
+            }
+        },
+        async fetchAssignedSubjects(id) {
+            try {
+                const response = await fetch(`${window.API_BASE}/api/teachers/${id}/subjects`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.assignedSubjects = result.data;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        },
+        async fetchAllSubjects() {
+            try {
+                const response = await fetch(`${window.API_BASE}/api/subjects`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.allSubjects = result.data;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        },
+        async fetchCareers() {
+            try {
+                const response = await fetch(`${window.API_BASE}/api/careers`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.careers = result.data;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        },
+        async assignSubject() {
+            if (!this.selectedSubjectId) return;
+            this.assigning = true;
+            try {
+                const response = await fetch(`${window.API_BASE}/api/teachers/${this.teacher.id}/subjects`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject_id: this.selectedSubjectId })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    await this.fetchAssignedSubjects(this.teacher.id);
+                    this.selectedSubjectId = '';
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Materia Asignada',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                this.assigning = false;
+            }
+        },
+        async removeSubject(subjectId) {
+            const confirmed = await Swal.fire({
+                title: '¿Eliminar asignación?',
+                text: "El profesor dejará de estar vinculado a esta materia.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar'
+            });
+
+            if (!confirmed.isConfirmed) return;
+
+            try {
+                const response = await fetch(`${window.API_BASE}/api/teachers/${this.teacher.id}/subjects/${subjectId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    await this.fetchAssignedSubjects(this.teacher.id);
+                }
+            } catch (err) {
+                console.error(err);
             }
         },
         handleFileChange(event) {
