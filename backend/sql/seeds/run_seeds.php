@@ -30,6 +30,14 @@ try {
         echo "¡Exito! Datos de base (01_mock_data.sql) cargados.\n";
     }
 
+    // 1.1 Ejecutar el script SQL de Carreras Reales (03_real_careers_subjects.sql)
+    $realCareersFile = __DIR__ . '/03_real_careers_subjects.sql';
+    if (file_exists($realCareersFile)) {
+        $sql = file_get_contents($realCareersFile);
+        $db->exec($sql);
+        echo "¡Exito! Carreras reales (03_real_careers_subjects.sql) cargadas.\n";
+    }
+
     // 2. Ejecutar el generador de datos extendido (Test data seeder)
     $extendedSeeder = __DIR__ . '/02_test_data_seeder.php';
     if (file_exists($extendedSeeder)) {

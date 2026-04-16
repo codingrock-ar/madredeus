@@ -63,7 +63,7 @@ export default {
                         </option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted mb-1">Comisión</label>
                     <select class="form-select" v-model="filters.commission" @change="fetchStudents">
                         <option value="">Todas</option>
@@ -74,7 +74,16 @@ export default {
                         <option value="E">Comisión E</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted mb-1">Período</label>
+                    <select class="form-select" v-model="filters.academic_cycle" @change="fetchStudents">
+                        <option value="">Todos</option>
+                        <option v-for="n in 6" :key="n" :value="n">Período {{ n }}</option>
+                        <option value="Egresó">Egresó</option>
+                        <option value="Finalizó Cursada">Finalizó Cursada</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted mb-1">Turno</label>
                     <select class="form-select" v-model="filters.shift" @change="fetchStudents">
                         <option value="">Todos los Turnos</option>
@@ -208,6 +217,7 @@ export default {
                 search: '',
                 career: '',
                 commission: '',
+                academic_cycle: '',
                 shift: '',
                 status: '',
                 page: 1,
@@ -319,6 +329,7 @@ export default {
                     search: this.filters.search,
                     career: this.filters.career,
                     commission: this.filters.commission,
+                    academic_cycle: this.filters.academic_cycle,
                     shift: this.filters.shift,
                     status: this.filters.status,
                     page: this.filters.page,

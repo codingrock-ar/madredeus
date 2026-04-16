@@ -35,22 +35,23 @@ export default {
                     </div>
                     <h5 class="fw-bold mb-1 text-uppercase">{{ student.lastname }}, {{ student.name }}</h5>
                     <p class="text-muted small mb-2">ID: #{{ student.id }} | DNI: {{ student.dni }}</p>
-                    <span class="badge" :class="statusBadgeClass">{{ student.status }}</span>
+                    <div class="d-flex flex-wrap justify-content-center gap-1 mb-2">
+                        <span v-for="ins in (student.inscriptions || [])" :key="'badge-'+ins.id" 
+                              class="badge" :class="getBadgeClass(ins.status)">
+                            {{ ins.status }}
+                        </span>
+                    </div>
                     
                     <hr class="my-3">
                     
                     <div class="text-start small">
-                        <div class="mb-3">
-                            <label class="text-muted d-block small mb-0">Carrera</label>
-                            <span class="fw-bold">{{ student.career }}</span>
+                        <div v-for="ins in (student.inscriptions || [])" :key="ins.id" class="mb-3 border-start ps-2 border-primary">
+                            <label class="text-muted d-block small mb-0">{{ ins.career_title }}</label>
+                            <span class="fw-bold d-block">{{ ins.commission || '-' }} ({{ ins.shift || '-' }})</span>
+                            <span class="text-muted extra-small">Ciclo: {{ ins.academic_cycle || '-' }} | Libro/Folio: {{ ins.book || '-' }}/{{ ins.folio || '-' }}</span>
                         </div>
-                        <div class="mb-3">
-                            <label class="text-muted d-block small mb-0">Comisión / Turno</label>
-                            <span class="fw-bold">{{ student.commission || '-' }} ({{ student.shift || '-' }})</span>
-                        </div>
-                        <div class="mb-3">
-                            <label class="text-muted d-block small mb-0">Ciclo Lectivo</label>
-                            <span class="fw-bold">{{ student.academic_cycle || '-' }}</span>
+                        <div v-if="!student.inscriptions || student.inscriptions.length === 0" class="text-muted italic">
+                            Sin inscripciones activas
                         </div>
                     </div>
                 </div>
@@ -374,7 +375,12 @@ export default {
     computed: {
         statusBadgeClass() {
             if (!this.student) return '';
-            switch(this.student.status) {
+            // Use the status of the first inscription as global status
+            const status = (this.student.inscriptions && this.student.inscriptions.length > 0) 
+                         ? this.student.inscriptions[0].status 
+                         : this.student.status;
+            
+            switch(status) {
                 case 'En Curso': return 'bg-soft-success text-success';
                 case 'Abandono': return 'bg-soft-danger text-danger';
                 case 'Egresado': return 'bg-soft-info text-info';
@@ -389,6 +395,14 @@ export default {
         }
     },
     methods: {
+        getBadgeClass(status) {
+            switch(status) {
+                case 'En Curso': return 'bg-soft-success text-success';
+                case 'Abandono': return 'bg-soft-danger text-danger';
+                case 'Egresado': return 'bg-soft-info text-info';
+                default: return 'bg-soft-warning text-warning';
+            }
+        },
         async fetchStudent(id) {
             this.loading = true;
             try {

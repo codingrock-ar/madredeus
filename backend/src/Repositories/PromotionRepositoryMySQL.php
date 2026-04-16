@@ -68,12 +68,20 @@ class PromotionRepositoryMySQL {
         $sql .= " WHERE student_id IN ($placeholders)";
         $params = array_merge($params, $ids);
 
+        // CRITICAL: Always filter by source career if provided to avoid 
+        // overwriting other career inscriptions for the same student.
         if ($sourceCareerId) {
             $sql .= " AND career_id = ?";
             $params[] = $sourceCareerId;
+        } else {
+            // If no source career is provided, we MUST find the career matching the source title
+            // but usually it's better to fail or require it in the controller.
+            // In processPromotion, $sId is passed, which is the career_id from the source query.
         }
         
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
+        $success = $stmt->execute($params);
+
+        return $success;
     }
 }

@@ -31,6 +31,7 @@ export default {
                 <div class="col-md-8">
                     <h5 class="fw-bold mb-1">
                         <i class="ph ph-fast-forward me-2 text-primary"></i>Promoción de Alumnos
+                        <span class="badge bg-soft-info text-info border border-info ms-2" style="font-size: 0.6rem;">MODO CUATRIMESTRAL V2</span>
                     </h5>
                     <p class="text-muted small mb-0">Seleccione la carrera para iniciar el proceso de configuración.</p>
                 </div>
@@ -55,14 +56,14 @@ export default {
                             <label class="form-label small">Periodo</label>
                             <select class="form-select form-select-sm" v-model="source.period" @change="onSourcePeriodChange" :disabled="!shared.career">
                                 <option value="">Seleccione Periodo</option>
-                                <option v-for="p in sourceCareerPeriods" :key="p" :value="p">{{ p }}</option>
+                                <option v-for="p in sourceCareerPeriods" :key="p" :value="p">{{ displayPeriod(p) }}</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small">Turno</label>
                             <select class="form-select form-select-sm" v-model="source.shift" @change="onSourceShiftChange" :disabled="!source.period">
                                 <option value="">Seleccione Turno</option>
-                                <option v-for="t in sourceShifts" :key="t" :value="t">{{ t }}</option>
+                                <option v-for="t in sourceShifts" :key="t" :value="t">{{ displayShift(t) }}</option>
                             </select>
                         </div>
                         <div class="mb-0">
@@ -92,7 +93,7 @@ export default {
                             <select class="form-select form-select-sm" v-model="target.period" @change="onTargetPeriodChange" :disabled="!isSourceComplete">
                                 <option value="">Seleccione Periodo</option>
                                 <option v-for="p in targetCareerPeriods" :key="p" :value="p" :disabled="isPeriodDisabled(p)">
-                                    {{ p }}
+                                    {{ displayPeriod(p) }}
                                 </option>
                             </select>
                         </div>
@@ -100,7 +101,7 @@ export default {
                             <label class="form-label small">Turno</label>
                             <select class="form-select form-select-sm" v-model="target.shift" @change="onTargetShiftChange" :disabled="!target.period">
                                 <option value="">Seleccione Turno</option>
-                                <option v-for="t in targetShifts" :key="t" :value="t">{{ t }}</option>
+                                <option v-for="t in targetShifts" :key="t" :value="t">{{ displayShift(t) }}</option>
                             </select>
                         </div>
                         <div class="mb-0">
@@ -168,7 +169,7 @@ export default {
             <!-- LISTADO DE FALLIDOS -->
             <div v-if="results.failed_list.length > 0" class="mt-4">
                 <h6 class="fw-bold mb-3"><i class="ph ph-warning me-1 text-danger"></i> Alumnos pendientes de revisión</h6>
-                <div class="table-responsive border rounded">
+                <div class="table-responsive border rounded mb-4">
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
@@ -187,6 +188,31 @@ export default {
                                     <button class="btn btn-xs btn-primary py-1 px-2" @click="manualPromote(student)">
                                         Promocionar Manual
                                     </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LISTADO DE PROMOCIONADOS -->
+            <div v-if="results.promoted_list.length > 0" class="mt-4">
+                <h6 class="fw-bold mb-3"><i class="ph ph-check-circle me-1 text-success"></i> Alumnos promocionados correctamente</h6>
+                <div class="table-responsive border rounded">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Alumno</th>
+                                <th>ID</th>
+                                <th>Estado Destino</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="student in results.promoted_list" :key="'p-'+student.id">
+                                <td class="fw-bold">{{ student.lastname }}, {{ student.name }}</td>
+                                <td>#{{ student.id }}</td>
+                                <td>
+                                    <span class="badge badge-soft-success">{{ target.period === 'Egresó' || target.period === 'Finalizó Cursada' ? target.period : 'Período ' + target.period }}</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -220,9 +246,20 @@ export default {
     computed: {
         sourceCareerPeriods() {
             const career = this.careers.find(c => c.title === this.shared.career);
-            const duration = career ? parseInt(career.duration) : 10;
-            const numericPeriods = Array.from({length: duration}, (_, i) => i + 1);
-            return [...numericPeriods, 'Egresó', 'Finalizó Cursada'];
+            // Si no hay carrera, por defecto usamos 3 años = 6 períodos
+            let years = 3;
+            if (career && career.duration) {
+                years = parseInt(career.duration);
+            }
+            // Aseguramos que sea al menos 1 para no mostrar lista vacía
+            years = Math.max(years, 1);
+            
+            const totalPeriods = years * 2;
+            const periods = [];
+            for (let i = 1; i <= totalPeriods; i++) {
+                periods.push(i.toString());
+            }
+            return [...periods, 'Egresó', 'Finalizó Cursada'];
         },
         targetCareerPeriods() {
             return this.sourceCareerPeriods;
@@ -248,9 +285,25 @@ export default {
         }
     },
     methods: {
+        displayPeriod(p) {
+            if (p === 'Egresó' || p === 'Finalizó Cursada') return p;
+            return `Período ${p}`;
+        },
+        displayShift(s) {
+            const labels = {
+                'TM': 'Mañana',
+                'TT': 'Tarde',
+                'TN': 'Noche'
+            };
+            return labels[s] || s;
+        },
         async fetchIndividualStudent(id) {
             try {
-                const response = await fetch(`/api/students/${id}`);
+                const token = localStorage.getItem('token');
+                const response = await fetch(window.API_BASE + `/api/students/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.status === 401) return this.$router.push('/login');
                 const result = await response.json();
                 if (result.status === 'success') {
                     const s = result.data;
@@ -298,9 +351,11 @@ export default {
         },
         async fetchData() {
             try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Authorization': `Bearer ${token}` };
                 const [careersRes, metaRes] = await Promise.all([
-                    fetch('/api/careers'),
-                    fetch('/api/metadata/student-types')
+                    fetch(window.API_BASE + '/api/careers', { headers }),
+                    fetch(window.API_BASE + '/api/metadata/student-types', { headers })
                 ]);
                 const careersData = await careersRes.json();
                 const metaData = await metaRes.json();
@@ -327,9 +382,13 @@ export default {
 
             this.isProcessing = true;
             try {
-                const response = await fetch('/api/promotion', {
+                const token = localStorage.getItem('token');
+                const response = await fetch(window.API_BASE + '/api/promotion', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         source_career: this.shared.career,
                         source_shift: this.source.shift,
@@ -344,6 +403,7 @@ export default {
                         filters: this.filters
                     })
                 });
+                if (response.status === 401) return this.$router.push('/login');
                 const res = await response.json();
                 if (res.status === 'success') {
                     this.results = res.data;
@@ -369,17 +429,23 @@ export default {
             if (!confirm.isConfirmed) return;
 
             try {
-                const response = await fetch('/api/promotion', {
+                const token = localStorage.getItem('token');
+                const response = await fetch(window.API_BASE + '/api/promotion', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         bypass_ids: [student.id],
+                        source_career: this.shared.career,
                         target_career: this.shared.career,
                         target_shift: this.target.shift,
                         target_commission: this.target.commission,
                         target_period: this.target.period
                     })
                 });
+                if (response.status === 401) return this.$router.push('/login');
                 const res = await response.json();
                 if (res.status === 'success') {
                     Swal.fire('Éxito', 'Alumno promocionado correctamente', 'success');

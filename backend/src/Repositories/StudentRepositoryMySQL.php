@@ -133,32 +133,36 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         // Count total
         $countSql = "SELECT COUNT(*) FROM students s $whereSql";
         $countStmt = $this->db->prepare($countSql);
+        
         foreach ($sqlParams as $key => $val) {
-            $countStmt->bindValue($key, $val);
+            // Only bind if the parameter is actually in the SQL
+            if (strpos($countSql, $key) !== false) {
+                $countStmt->bindValue($key, $val);
+            }
         }
         $countStmt->execute();
         $total = $countStmt->fetchColumn();
 
         // Get data with preferred career
-        // Lógica: Carrera a la que primero se inscribió y no está en estado Finalizó Cursada
+        // Ensure :career_filter is always set for the main data query
+        $sqlParams[':career_filter'] = $params['career'] ?? '';
         $dataSql = "SELECT s.*, pref.career_title as career, pref.commission, pref.shift, pref.status, pref.academic_cycle
                     FROM students s
                     LEFT JOIN (
-                        SELECT sci.student_id, c.title as career_title, sci.commission, sci.shift, sci.status, sci.academic_cycle
-                        FROM student_career_inscriptions sci
-                        JOIN careers c ON sci.career_id = c.id
-                        WHERE (sci.student_id, sci.inscription_date) IN (
-                            SELECT student_id, MIN(inscription_date)
-                            FROM student_career_inscriptions
-                            WHERE status != 'Finalizó Cursada'
-                            GROUP BY student_id
-                        )
-                        OR (sci.student_id, sci.inscription_date) IN (
-                            -- Fallback if all careers are finished
-                            SELECT student_id, MAX(inscription_date)
-                            FROM student_career_inscriptions
-                            GROUP BY student_id
-                        )
+                        SELECT t.student_id, t.career_title, t.commission, t.shift, t.status, t.academic_cycle
+                        FROM (
+                            SELECT sci.student_id, c.title as career_title, sci.commission, sci.shift, sci.status, sci.academic_cycle,
+                                   ROW_NUMBER() OVER (
+                                       PARTITION BY sci.student_id
+                                       ORDER BY
+                                           (CASE WHEN c.title = :career_filter THEN 0 ELSE 1 END),
+                                           (CASE WHEN sci.status != 'Finalizó Cursada' THEN 0 ELSE 1 END),
+                                           sci.inscription_date DESC,
+                                           sci.id DESC
+                                   ) as rn
+                            FROM student_career_inscriptions sci
+                            JOIN careers c ON sci.career_id = c.id
+                        ) t WHERE t.rn = 1
                     ) pref ON s.id = pref.student_id
                     $whereSql 
                     ORDER BY s.id DESC 
@@ -166,7 +170,10 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         
         $dataStmt = $this->db->prepare($dataSql);
         foreach ($sqlParams as $key => $val) {
-            $dataStmt->bindValue($key, $val);
+            // Only bind if the parameter is actually in the SQL
+            if (strpos($dataSql, $key) !== false) {
+                $dataStmt->bindValue($key, $val);
+            }
         }
         $dataStmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $dataStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -189,14 +196,14 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $this->db->beginTransaction();
 
             $sql = "INSERT INTO students (
-                        dni, name, lastname, email, birthdate, nationality, phone, address, city, career, commission, shift, status,
+                        dni, name, lastname, email, birthdate, nationality, phone, address, city,
                         photo, birth_place, document_type, civil_status, max_education_level, education_finished, degree_obtained,
                         institution, book, folio, academic_cycle, scholarship_id, academic_year, address_street, address_number, address_type, address_province,
                         address_locality, address_zip_code, phone_landline, phone_mobile, req_dni_photocopy, req_degree_photocopy,
                         req_degree_photocopy_obs, req_two_photos, req_psychophysical, req_psychophysical_obs, req_vaccines,
                         req_vaccines_obs, req_student_book, req_final_degree, req_final_degree_obs, found_institution, notes
                     ) VALUES (
-                        :dni, :name, :lastname, :email, :birthdate, :nationality, :phone, :address, :city, :career, :commission, :shift, :status,
+                        :dni, :name, :lastname, :email, :birthdate, :nationality, :phone, :address, :city,
                         :photo, :birth_place, :document_type, :civil_status, :max_education_level, :education_finished, :degree_obtained,
                         :institution, :book, :folio, :academic_cycle, :scholarship_id, :academic_year, :address_street, :address_number, :address_type, :address_province,
                         :address_locality, :address_zip_code, :phone_landline, :phone_mobile, :req_dni_photocopy, :req_degree_photocopy,
@@ -206,20 +213,52 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             
             $stmt = $this->db->prepare($sql);
             $params = $this->mapParams($data);
-            $stmt->execute($params);
+            foreach ($params as $key => $val) {
+                if (strpos($sql, $key) !== false) {
+                    $stmt->bindValue($key, $val);
+                }
+            }
+            $stmt->execute();
             
             $studentId = $this->db->lastInsertId();
 
-            // Create inscription if career data is provided
-            if (!empty($data['career'])) {
+            // Process inscriptions
+            if (!empty($data['inscriptions']) && is_array($data['inscriptions'])) {
+                foreach ($data['inscriptions'] as $ins) {
+                    $careerId = $ins['career_id'] ?? null;
+                    if (!$careerId && !empty($ins['career_title'])) {
+                         $stmt = $this->db->prepare("SELECT id FROM careers WHERE title = :title");
+                         $stmt->execute([':title' => $ins['career_title']]);
+                         $careerId = $stmt->fetchColumn();
+                    }
+
+                    if ($careerId) {
+                        $stmt = $this->db->prepare("
+                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date)
+                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW())
+                        ");
+                        $stmt->execute([
+                            ':student_id' => $studentId,
+                            ':career_id' => $careerId,
+                            ':commission' => $ins['commission'] ?? null,
+                            ':shift' => $ins['shift'] ?? null,
+                            ':academic_cycle' => $ins['academic_cycle'] ?? null,
+                            ':status' => $ins['status'] ?? 'En Curso',
+                            ':book' => $ins['book'] ?? null,
+                            ':folio' => $ins['folio'] ?? null
+                        ]);
+                    }
+                }
+            } else if (!empty($data['career'])) {
+                // Fallback for old simple data structure during transition
                 $stmt = $this->db->prepare("SELECT id FROM careers WHERE title = :title");
                 $stmt->execute([':title' => $data['career']]);
                 $career = $stmt->fetch();
                 
                 if ($career) {
                     $stmt = $this->db->prepare("
-                        INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, inscription_date)
-                        VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, NOW())
+                        INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date)
+                        VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW())
                     ");
                     $stmt->execute([
                         ':student_id' => $studentId,
@@ -227,7 +266,9 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         ':commission' => $data['commission'] ?? null,
                         ':shift' => $data['shift'] ?? null,
                         ':academic_cycle' => $data['academic_cycle'] ?? null,
-                        ':status' => $data['status'] ?? 'En Curso'
+                        ':status' => $data['status'] ?? 'En Curso',
+                        ':book' => $data['book'] ?? null,
+                        ':folio' => $data['folio'] ?? null
                     ]);
                 }
             }
@@ -250,8 +291,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $sql = "UPDATE students 
                     SET dni = :dni, name = :name, lastname = :lastname, email = :email, 
                         birthdate = :birthdate, nationality = :nationality, phone = :phone, 
-                        address = :address, city = :city, career = :career, 
-                        commission = :commission, shift = :shift, status = :status,
+                        address = :address, city = :city,
                         photo = :photo, birth_place = :birth_place, document_type = :document_type,
                         civil_status = :civil_status, max_education_level = :max_education_level,
                         education_finished = :education_finished, degree_obtained = :degree_obtained,
@@ -273,17 +313,88 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $stmt = $this->db->prepare($sql);
             $params = $this->mapParams($data);
             $params[':id'] = $id;
-            $stmt->execute($params);
+            foreach ($params as $key => $val) {
+                if (strpos($sql, $key) !== false) {
+                    $stmt->bindValue($key, $val);
+                }
+            }
+            $stmt->execute();
 
-            // Update or create inscription if career data is provided
-            if (!empty($data['career'])) {
+            // Process inscriptions
+            if (isset($data['inscriptions']) && is_array($data['inscriptions'])) {
+                // IDs of inscriptions provided in the update
+                $providedInsIds = array_filter(array_column($data['inscriptions'], 'id'));
+                
+                // Remove inscriptions NOT present in the provided list
+                if (!empty($providedInsIds)) {
+                    $placeholders = implode(',', array_fill(0, count($providedInsIds), '?'));
+                    $stmt = $this->db->prepare("DELETE FROM student_career_inscriptions WHERE student_id = ? AND id NOT IN ($placeholders)");
+                    $stmt->execute(array_merge([$id], $providedInsIds));
+                } else {
+                    // If an empty array is provided, it might mean remove all (caution)
+                    // But usually there should be at least one. If empty, we might skip deletion or handle as "re-create all"
+                }
+
+                foreach ($data['inscriptions'] as $ins) {
+                    $careerId = $ins['career_id'] ?? null;
+                    if (!$careerId && !empty($ins['career_title'])) {
+                        $stmt = $this->db->prepare("SELECT id FROM careers WHERE title = :title");
+                        $stmt->execute([':title' => $ins['career_title']]);
+                        $careerId = $stmt->fetchColumn();
+                    }
+
+                    if (!$careerId) continue;
+
+                    if (!empty($ins['id'])) {
+                        // Update existing
+                        $stmt = $this->db->prepare("
+                            UPDATE student_career_inscriptions 
+                            SET career_id = :career_id,
+                                commission = :commission, 
+                                shift = :shift, 
+                                academic_cycle = :academic_cycle, 
+                                status = :status,
+                                book = :book,
+                                folio = :folio
+                            WHERE id = :id AND student_id = :student_id
+                        ");
+                        $stmt->execute([
+                            ':career_id' => $careerId,
+                            ':commission' => $ins['commission'] ?? null,
+                            ':shift' => $ins['shift'] ?? null,
+                            ':academic_cycle' => $ins['academic_cycle'] ?? null,
+                            ':status' => $ins['status'] ?? 'En Curso',
+                            ':book' => $ins['book'] ?? null,
+                            ':folio' => $ins['folio'] ?? null,
+                            ':id' => $ins['id'],
+                            ':student_id' => $id
+                        ]);
+                    } else {
+                        // Create new
+                        $stmt = $this->db->prepare("
+                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date)
+                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW())
+                        ");
+                        $stmt->execute([
+                            ':student_id' => $id,
+                            ':career_id' => $careerId,
+                            ':commission' => $ins['commission'] ?? null,
+                            ':shift' => $ins['shift'] ?? null,
+                            ':academic_cycle' => $ins['academic_cycle'] ?? null,
+                            ':status' => $ins['status'] ?? 'En Curso',
+                            ':book' => $ins['book'] ?? null,
+                            ':folio' => $ins['folio'] ?? null
+                        ]);
+                    }
+                }
+            } else if (!empty($data['career'])) {
+                // Fallback for old simple data structure (deprecated but keeping for safety during dev)
                 $stmt = $this->db->prepare("SELECT id FROM careers WHERE title = :title");
                 $stmt->execute([':title' => $data['career']]);
                 $career = $stmt->fetch();
                 
                 if ($career) {
                     $careerId = $career['id'];
-                    // Check if inscription exists for this career
                     $stmt = $this->db->prepare("SELECT id FROM student_career_inscriptions WHERE student_id = :student_id AND career_id = :career_id");
                     $stmt->execute([':student_id' => $id, ':career_id' => $careerId]);
                     $existing = $stmt->fetch();
@@ -291,10 +402,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                     if ($existing) {
                         $stmt = $this->db->prepare("
                             UPDATE student_career_inscriptions 
-                            SET commission = :commission, 
-                                shift = :shift, 
-                                academic_cycle = :academic_cycle, 
-                                status = :status
+                            SET commission = :commission, shift = :shift, academic_cycle = :academic_cycle, status = :status, book = :book, folio = :folio
                             WHERE id = :id
                         ");
                         $stmt->execute([
@@ -302,12 +410,14 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':shift' => $data['shift'] ?? null,
                             ':academic_cycle' => $data['academic_cycle'] ?? null,
                             ':status' => $data['status'] ?? 'En Curso',
+                            ':book' => $data['book'] ?? null,
+                            ':folio' => $data['folio'] ?? null,
                             ':id' => $existing['id']
                         ]);
                     } else {
                         $stmt = $this->db->prepare("
-                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, inscription_date)
-                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, NOW())
+                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date)
+                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW())
                         ");
                         $stmt->execute([
                             ':student_id' => $id,
@@ -315,7 +425,9 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':commission' => $data['commission'] ?? null,
                             ':shift' => $data['shift'] ?? null,
                             ':academic_cycle' => $data['academic_cycle'] ?? null,
-                            ':status' => $data['status'] ?? 'En Curso'
+                            ':status' => $data['status'] ?? 'En Curso',
+                            ':book' => $data['book'] ?? null,
+                            ':folio' => $data['folio'] ?? null
                         ]);
                     }
                 }
@@ -395,24 +507,40 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
 
         $whereSql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
         
+        $sqlParams[':career_filter'] = $filters['career'] ?? '';
+
         // Select with preferred career (latest active or first found)
         $sql = "SELECT DISTINCT s.*, st.name as scholarship_name, pref.career_title as career, pref.commission, pref.shift, pref.status, pref.academic_cycle
                 FROM students s 
                 LEFT JOIN scholarship_types st ON s.scholarship_id = st.id 
                 LEFT JOIN (
-                    SELECT sci.student_id, c.title as career_title, sci.commission, sci.shift, sci.status, sci.academic_cycle
-                    FROM student_career_inscriptions sci
-                    JOIN careers c ON sci.career_id = c.id
-                    WHERE (sci.student_id, sci.inscription_date) IN (
-                        SELECT student_id, MAX(inscription_date) FROM student_career_inscriptions GROUP BY student_id
-                    )
+                    SELECT t.student_id, t.career_title, t.commission, t.shift, t.status, t.academic_cycle
+                    FROM (
+                        SELECT sci.student_id, c.title as career_title, sci.commission, sci.shift, sci.status, sci.academic_cycle,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY sci.student_id
+                                   ORDER BY
+                                       (CASE WHEN c.title = :career_filter THEN 0 ELSE 1 END),
+                                       (CASE WHEN sci.status != 'Finalizó Cursada' THEN 0 ELSE 1 END),
+                                       sci.inscription_date DESC,
+                                       sci.id DESC
+                               ) as rn
+                        FROM student_career_inscriptions sci
+                        JOIN careers c ON sci.career_id = c.id
+                    ) t WHERE t.rn = 1
                 ) pref ON s.id = pref.student_id
                 $joinDebt
                 $whereSql 
                 ORDER BY s.lastname, s.name";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($sqlParams);
+        foreach ($sqlParams as $key => $val) {
+             // Only bind if the parameter is actually in the SQL
+             if (strpos($sql, $key) !== false) {
+                $stmt->bindValue($key, $val);
+             }
+        }
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

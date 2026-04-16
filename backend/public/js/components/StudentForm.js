@@ -123,47 +123,69 @@ export default {
                             </div>
                         </div>
 
-                        <!-- TAB: ACADEMIC -->
+                        <!-- TAB: ACADEMIC (MULTI-CAREER) -->
                         <div v-show="tab === 'academic' || isPrinting" class="fade-in">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Carrera</label>
-                                    <select class="form-select" v-model="student.career">
-                                        <option v-for="c in careers" :key="c.id" :value="c.title">{{c.title}}</option>
-                                    </select>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Inscripciones a Carreras</h6>
+                                <button type="button" class="btn btn-outline-primary btn-sm" @click="addInscription">
+                                    <i class="ph ph-plus me-1"></i> Nueva Inscripción
+                                </button>
+                            </div>
+
+                            <div v-for="(ins, index) in student.inscriptions" :key="index" class="card border mb-3">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                    <span class="fw-bold text-primary small">#{{index + 1}} - Inscripto en: {{ ins.career_title || '(Seleccione Carrera)' }}</span>
+                                    <button type="button" class="btn btn-link text-danger p-0" @click="removeInscription(index)">
+                                        <i class="ph ph-trash"></i>
+                                    </button>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Ciclo Lectivo</label>
-                                    <input type="text" class="form-control" v-model="student.academic_cycle" placeholder="Ej: 2024">
+                                <div class="card-body p-3">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label small">Carrera</label>
+                                            <select class="form-select form-select-sm" v-model="ins.career_title" @change="updateCareerId(ins)">
+                                                <option v-for="c in careers" :key="c.id" :value="c.title">{{c.title}}</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Ciclo Lectivo</label>
+                                            <input type="text" class="form-control form-control-sm" v-model="ins.academic_cycle" placeholder="Ej: 2024">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Comisión</label>
+                                            <input type="text" class="form-control form-control-sm" v-model="ins.commission">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Libro</label>
+                                            <input type="text" class="form-control form-control-sm" v-model="ins.book">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Folio</label>
+                                            <input type="text" class="form-control form-control-sm" v-model="ins.folio">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Turno</label>
+                                            <select class="form-select form-select-sm" v-model="ins.shift">
+                                                <option value="TM">Mañana (TM)</option>
+                                                <option value="TT">Tarde (TT)</option>
+                                                <option value="TN">Noche (TN)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Estado</label>
+                                            <select class="form-select form-select-sm" v-model="ins.status">
+                                                <option value="En Curso">En Curso</option>
+                                                <option value="Abandono">Abandono</option>
+                                                <option value="Egresado">Egresado</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Comisión</label>
-                                    <input type="text" class="form-control" v-model="student.commission">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Libro</label>
-                                    <input type="text" class="form-control" v-model="student.book">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Folio</label>
-                                    <input type="text" class="form-control" v-model="student.folio">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Turno</label>
-                                    <select class="form-select" v-model="student.shift">
-                                        <option value="TM">Mañana (TM)</option>
-                                        <option value="TT">Tarde (TT)</option>
-                                        <option value="TN">Noche (TN)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-12">
-                                    <label class="form-label">Estado del Alumno</label>
-                                    <select class="form-select border-primary" v-model="student.status">
-                                        <option value="En Curso">En Curso</option>
-                                        <option value="Abandono">Abandono</option>
-                                        <option value="Egresado">Egresado</option>
-                                    </select>
-                                </div>
+                            </div>
+                            
+                            <div v-if="!student.inscriptions || student.inscriptions.length === 0" class="text-center py-4 bg-light rounded text-muted small">
+                                <i class="ph ph-warning-circle fs-3 mb-2 d-block"></i>
+                                No hay inscripciones registradas. Haga clic en "Nueva Inscripción" para comenzar.
                             </div>
                         </div>
 
@@ -335,7 +357,8 @@ export default {
                 req_psychophysical: false,
                 req_vaccines: false,
                 req_student_book: false,
-                req_final_degree: false
+                req_final_degree: false,
+                inscriptions: []
             },
             originalStudent: null,
             loading: false,
@@ -496,6 +519,30 @@ export default {
                 }
             }
             this.$router.push('/students');
+        },
+        addInscription() {
+            if (!this.student.inscriptions) this.student.inscriptions = [];
+            this.student.inscriptions.push({
+                career_id: null,
+                career_title: '',
+                academic_cycle: '',
+                commission: '',
+                shift: 'TM',
+                status: 'En Curso',
+                book: '',
+                folio: ''
+            });
+        },
+        removeInscription(index) {
+            if (confirm('¿Estás seguro de que deseas eliminar esta inscripción?')) {
+                this.student.inscriptions.splice(index, 1);
+            }
+        },
+        updateCareerId(ins) {
+            const career = this.careers.find(c => c.title === ins.career_title);
+            if (career) {
+                ins.career_id = career.id;
+            }
         }
     },
     async mounted() {
