@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "8010:80"
     volumes:
       - ./backend:/var/www/html
     environment:
@@ -23,7 +23,7 @@ services:
       - MYSQL_ROOT_PASSWORD=secret
       - MYSQL_DATABASE=madredeus_db
     ports:
-      - "3306:3306"
+      - "3310:3306"
     volumes:
       - db_data:/var/lib/mysql
       # Se mapea la estructura de la base de datos (vacía)
@@ -33,7 +33,7 @@ services:
     image: adminer
     restart: always
     ports:
-      - 8081:8080
+      - "8011:8080"
 
 volumes:
   db_data:
