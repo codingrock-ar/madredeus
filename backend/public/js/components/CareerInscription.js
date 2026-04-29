@@ -51,8 +51,8 @@ export default {
                 <div class="col-md-3">
                     <label class="form-label small fw-bold">Ciclo Lectivo</label>
                     <select class="form-select" v-model="form.academic_cycle" required>
-                        <option v-for="cycle in cycles" :key="cycle.id" :value="cycle.year">
-                            {{ cycle.year }}
+                        <option v-for="cycle in cycles" :key="cycle.id" :value="cycle.name">
+                            {{ cycle.name }}
                         </option>
                     </select>
                 </div>
@@ -72,6 +72,7 @@ export default {
                         <option value="A">Comisión A</option>
                         <option value="B">Comisión B</option>
                         <option value="C">Comisión C</option>
+                        <option value="D">Comisión D</option>
                     </select>
                 </div>
 
@@ -126,7 +127,7 @@ export default {
             cycles: [],
             form: {
                 career_id: '',
-                academic_cycle: new Date().getFullYear(),
+                academic_cycle: '',
                 shift: 'TM',
                 commission: 'A',
                 inscription_date: new Date().toISOString().split('T')[0],
@@ -165,7 +166,9 @@ export default {
                 const cData = await cRes.json();
                 const cyData = await cyRes.json();
                 if (cData.status === 'success') this.careers = cData.data;
-                if (cyData.status === 'success') this.cycles = cyData.data;
+                if (cyData.status === 'success') {
+                    this.cycles = cyData.data.filter(c => c.status === 'active');
+                }
             } catch (err) {
                 console.error("Error fetching dependencies:", err);
             }

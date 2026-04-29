@@ -39,6 +39,7 @@ export default {
                             <option value="A">A</option>
                             <option value="B">B</option>
                             <option value="C">C</option>
+                            <option value="D">D</option>
                         </select>
                     </div>
                 </div>
@@ -101,6 +102,7 @@ export default {
                                 <option value="A">A</option>
                                 <option value="B">B</option>
                                 <option value="C">C</option>
+                                <option value="D">D</option>
                             </select>
                         </div>
                     </div>

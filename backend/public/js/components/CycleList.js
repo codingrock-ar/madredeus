@@ -4,9 +4,15 @@ export default {
         <div class="card-modern p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="fw-bold mb-0">Ciclos Lectivos</h5>
-                <button class="btn btn-primary shadow-sm" @click="showAddModal = true; initFlatpickr()">
-                    <i class="ph ph-plus-circle me-1"></i> Nuevo Ciclo
-                </button>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="showInactiveToggle" v-model="showInactive">
+                        <label class="form-check-label small text-muted fw-bold" for="showInactiveToggle">Mostrar Inactivos</label>
+                    </div>
+                    <button class="btn btn-primary shadow-sm" @click="showAddModal = true; initFlatpickr()">
+                        <i class="ph ph-plus-circle me-1"></i> Nuevo Ciclo
+                    </button>
+                </div>
             </div>
 
             <div class="table-responsive">
@@ -21,7 +27,7 @@ export default {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="cycle in cycles" :key="cycle.id">
+                        <tr v-for="cycle in cycles" :key="cycle.id" v-show="cycle.status === 'active' || showInactive">
                             <td class="fw-semibold text-primary" style="cursor: pointer;" @click="editCycle(cycle)">{{ cycle.name }}</td>
                             <td>{{ formatDate(cycle.start_date) }}</td>
                             <td>{{ formatDate(cycle.end_date) }}</td>
@@ -47,7 +53,7 @@ export default {
 
             <div class="d-flex justify-content-between align-items-center mt-3 border-top pt-3">
                 <div class="text-muted small">
-                    Cantidad de Ciclos Lectivos: <span class="fw-bold">{{ cycles.length }}</span>
+                    Cantidad de Ciclos Lectivos: <span class="fw-bold">{{ cycles.filter(c => c.status === 'active' || showInactive).length }}</span>
                 </div>
             </div>
         </div>
@@ -97,6 +103,7 @@ export default {
     data() {
         return {
             cycles: [],
+            showInactive: false,
             showAddModal: false,
             editingId: null,
             newCycle: { name: '', start_date: '', end_date: '', status: 'active' },

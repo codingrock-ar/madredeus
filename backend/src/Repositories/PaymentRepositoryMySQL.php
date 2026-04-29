@@ -105,18 +105,21 @@ class PaymentRepositoryMySQL {
     public function create(array $data) {
         if (!$this->db) return false;
         
-        $sql = "INSERT INTO payments (student_id, amount, payment_date, payment_method, concept, status, notes) 
-                VALUES (:student_id, :amount, :payment_date, :payment_method, :concept, :status, :notes)";
+        $sql = "INSERT INTO payments (student_id, amount, payment_date, due_date, type, payment_method, concept, status, notes, details) 
+                VALUES (:student_id, :amount, :payment_date, :due_date, :type, :payment_method, :concept, :status, :notes, :details)";
         
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
             ':student_id' => $data['student_id'],
             ':amount' => $data['amount'],
-            ':payment_date' => $data['payment_date'] ?? date('Y-m-d H:i:s'),
+            ':payment_date' => $data['payment_date'] ?? null,
+            ':due_date' => $data['due_date'] ?? null,
+            ':type' => $data['type'] ?? 'Otro',
             ':payment_method' => $data['payment_method'] ?? 'Efectivo',
             ':concept' => $data['concept'],
-            ':status' => $data['status'] ?? 'Pagado',
-            ':notes' => $data['notes'] ?? null
+            ':status' => $data['status'] ?? 'Pendiente',
+            ':notes' => $data['notes'] ?? null,
+            ':details' => isset($data['details']) ? json_encode($data['details']) : null
         ]);
     }
 
@@ -126,15 +129,31 @@ class PaymentRepositoryMySQL {
         $sql = "UPDATE payments SET 
                 amount = :amount, 
                 payment_date = :payment_date, 
+                due_date = :due_date,
+                type = :type,
                 payment_method = :payment_method, 
                 concept = :concept, 
                 status = :status, 
-                notes = :notes 
+                notes = :notes,
+                details = :details
                 WHERE id = :id";
         
         $stmt = $this->db->prepare($sql);
-        $data[':id'] = $id;
-        return $stmt->execute($data);
+        
+        $updateData = [
+            ':id' => $id,
+            ':amount' => $data['amount'],
+            ':payment_date' => $data['payment_date'] ?? null,
+            ':due_date' => $data['due_date'] ?? null,
+            ':type' => $data['type'] ?? 'Otro',
+            ':payment_method' => $data['payment_method'] ?? 'Efectivo',
+            ':concept' => $data['concept'],
+            ':status' => $data['status'] ?? 'Pendiente',
+            ':notes' => $data['notes'] ?? null,
+            ':details' => isset($data['details']) ? json_encode($data['details']) : null
+        ];
+        
+        return $stmt->execute($updateData);
     }
 
     public function delete($id) {
@@ -205,5 +224,50 @@ class PaymentRepositoryMySQL {
         }
 
         return array_values($grouped);
+    }
+
+    public function getLastExecutionDate() {
+        if (!$this->db) return null;
+        $stmt = $this->db->query("SELECT MAX(created_at) FROM payments WHERE status != 'Anulado'");
+        return $stmt->fetchColumn();
+    }
+
+    public function cancelPendingByStudent($studentId) {
+        if (!$this->db) return false;
+        $sql = "UPDATE payments SET status = 'Anulado' 
+                WHERE student_id = :student_id AND status = 'Pendiente'";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':student_id' => $studentId]);
+    }
+
+    public function generatePaymentPlan($studentId, array $planData) {
+        if (!$this->db) return false;
+        
+        try {
+            $this->db->beginTransaction();
+            
+            $sql = "INSERT INTO payments (student_id, amount, payment_date, due_date, type, payment_method, concept, status, details) 
+                    VALUES (:student_id, :amount, NULL, :due_date, :type, NULL, :concept, 'Pendiente', :details)";
+            
+            $stmt = $this->db->prepare($sql);
+            
+            foreach ($planData as $payment) {
+                $stmt->execute([
+                    ':student_id' => $studentId,
+                    ':amount' => $payment['amount'],
+                    ':due_date' => $payment['due_date'],
+                    ':type' => $payment['type'],
+                    ':concept' => $payment['concept'],
+                    ':details' => isset($payment['details']) ? json_encode($payment['details']) : null
+                ]);
+            }
+            
+            $this->db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            error_log("Error generating payment plan: " . $e->getMessage());
+            return false;
+        }
     }
 }

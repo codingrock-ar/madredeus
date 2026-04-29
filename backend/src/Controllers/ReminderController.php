@@ -4,6 +4,8 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Services\EmailService;
+use App\Notifications\PaymentReminderNotification;
+use App\Notifications\DocumentationReminderNotification;
 use App\Repositories\StudentRepositoryMySQL;
 
 class ReminderController {
@@ -34,7 +36,8 @@ class ReminderController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
-        EmailService::sendPaymentReminder($student, $debt);
+        $notification = new PaymentReminderNotification($student, $debt);
+        $notification->send();
 
         $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Reminder sent']));
         return $response->withHeader('Content-Type', 'application/json');
@@ -72,7 +75,8 @@ class ReminderController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
-        EmailService::sendDocumentationReminder($student, $missing);
+        $notification = new DocumentationReminderNotification($student, $missing);
+        $notification->send();
 
         $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Reminder sent']));
         return $response->withHeader('Content-Type', 'application/json');

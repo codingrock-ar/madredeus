@@ -142,8 +142,19 @@ export default {
                         <nav class="d-flex justify-content-between align-items-center">
                             <span class="extra-small text-muted">Página {{ page }} de {{ totalPages }}</span>
                             <ul class="pagination pagination-sm mb-0">
-                                <li class="page-item" :class="{ disabled: page === 1 }"><a class="page-link" href="#" @click.prevent="changePage(page - 1)">Ant.</a></li>
-                                <li class="page-item" :class="{ disabled: page === totalPages }"><a class="page-link" href="#" @click.prevent="changePage(page + 1)">Sig.</a></li>
+                                <li class="page-item" :class="{ disabled: page === 1 }">
+                                    <a class="page-link" href="#" @click.prevent="changePage(page - 1)">
+                                        <i class="ph ph-caret-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item" v-for="p in visiblePages" :key="p" :class="{ active: page === p, disabled: p === '...' }">
+                                    <a class="page-link" href="#" @click.prevent="p !== '...' && changePage(p)">{{ p }}</a>
+                                </li>
+                                <li class="page-item" :class="{ disabled: page === totalPages }">
+                                    <a class="page-link" href="#" @click.prevent="changePage(page + 1)">
+                                        <i class="ph ph-caret-right"></i>
+                                    </a>
+                                </li>
                             </ul>
                         </nav>
                     </div>
@@ -253,6 +264,27 @@ export default {
     computed: {
         totalPages() {
             return Math.ceil(this.totalCount / this.perPage);
+        },
+        visiblePages() {
+            const pages = [];
+            const total = this.totalPages;
+            const current = this.page;
+            
+            if (total <= 10) {
+                for (let i = 1; i <= total; i++) pages.push(i);
+            } else {
+                pages.push(1);
+                if (current > 4) pages.push('...');
+                
+                const start = Math.max(2, current - 2);
+                const end = Math.min(total - 1, current + 2);
+                
+                for (let i = start; i <= end; i++) pages.push(i);
+                
+                if (current < total - 3) pages.push('...');
+                pages.push(total);
+            }
+            return pages;
         }
     },
     mounted() {

@@ -28,6 +28,10 @@ class CareerController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
         }
 
+        // Fetch subjects for this career
+        $subjectRepo = new \App\Repositories\SubjectRepositoryMySQL();
+        $career['subjects'] = $subjectRepo->getByCareer($id);
+
         $response->getBody()->write(json_encode(['status' => 'success', 'data' => $career]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
     }

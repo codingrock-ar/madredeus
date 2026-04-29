@@ -51,6 +51,33 @@ export default {
                         </div>
                     </div>
                     
+                    <div v-if="isViewMode && career.subjects && career.subjects.length > 0" class="mt-5 pt-4 border-top fade-in">
+                        <h5 class="text-primary mb-4"><i class="ph ph-books me-2"></i>Plan de Estudios (Materias)</h5>
+                        <div v-for="(quarters, year) in groupedSubjects" :key="year" class="mb-4">
+                            <h6 class="fw-bold bg-light p-2 rounded mb-3 shadow-none border-start border-primary border-4">
+                                <i class="ph ph-calendar-blank me-2"></i>Año {{ year }}
+                            </h6>
+                            <div class="row g-3">
+                                <div v-for="(subjects, quarter) in quarters" :key="quarter" class="col-md-6">
+                                    <div class="card border border-light-subtle shadow-none h-100">
+                                        <div class="card-header bg-light-subtle py-2">
+                                            <span class="badge bg-primary-subtle text-primary small">{{ quarter }}º Cuatrimestre</span>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <ul class="list-group list-group-flush small">
+                                                <li v-for="s in subjects" :key="s.id" class="list-group-item d-flex justify-content-between align-items-center py-2 border-light-subtle">
+                                                    <span>{{ s.name }}</span>
+                                                    <i v-if="s.program" class="ph ph-file-pdf text-danger" title="Tiene programa"></i>
+                                                </li>
+                                                <li v-if="subjects.length === 0" class="list-group-item text-muted py-2 fst-italic">Sin materias cargadas</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mt-4 pt-4 border-top text-end">
                         <button type="button" class="btn btn-light me-2" @click="$router.push('/careers')">{{ isViewMode ? 'Cerrar' : 'Cancelar' }}</button>
                         <button v-if="!isViewMode" type="submit" class="btn btn-primary px-4" :disabled="loading || uploading">
@@ -66,11 +93,29 @@ export default {
     `,
     data() {
         return {
-            career: { title: '', duration: 3, resolution: '', degree_title: '', study_plan: '' },
+            career: { title: '', duration: 3, resolution: '', degree_title: '', study_plan: '', subjects: [] },
             loading: false,
             uploading: false,
             isViewMode: false,
             error: null
+        }
+    },
+    computed: {
+        groupedSubjects() {
+            if (!this.career.subjects) return {};
+            const groups = {};
+            this.career.subjects.forEach(s => {
+                const year = s.academic_year || 1;
+                const quarter = s.quarter || 1;
+                if (!groups[year]) groups[year] = { 1: [], 2: [] };
+                // Ensure quarter 1 and 2 exist
+                if (!groups[year][1]) groups[year][1] = [];
+                if (!groups[year][2]) groups[year][2] = [];
+                
+                if (!groups[year][quarter]) groups[year][quarter] = [];
+                groups[year][quarter].push(s);
+            });
+            return groups;
         }
     },
     methods: {

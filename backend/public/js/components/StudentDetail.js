@@ -13,8 +13,18 @@ export default {
                 <button class="btn btn-outline-primary btn-sm" @click="printDetail">
                     <i class="ph ph-printer me-1"></i> Imprimir
                 </button>
+                <button class="btn btn-soft-info btn-sm" @click="sendLegajo" :disabled="sendingLegajo">
+                    <i class="ph" :class="sendingLegajo ? 'ph-spinner-gap animate-spin' : 'ph-envelope-simple-open'"></i> 
+                    {{ sendingLegajo ? 'Enviando...' : 'Enviar Legajo' }}
+                </button>
                 <router-link :to="'/student/form?id=' + student.id" class="btn btn-primary btn-sm">
                     <i class="ph ph-pencil me-1"></i> Editar
+                </router-link>
+                <router-link :to="'/student/grades/' + student.id" class="btn btn-outline-success btn-sm">
+                    <i class="ph ph-graduation-cap me-1"></i> Calificaciones
+                </router-link>
+                <router-link :to="'/student/collect/' + student.id" class="btn btn-outline-dark btn-sm">
+                    <i class="ph ph-currency-dollar me-1"></i> Pagos
                 </router-link>
                 <router-link :to="'/students/promotion?student_id=' + student.id" class="btn btn-secondary btn-sm">
                     <i class="ph ph-fast-forward me-1"></i> Promocionar
@@ -230,7 +240,7 @@ export default {
                                 <div v-for="ins in student.inscriptions" :key="'ins-grades-' + ins.id" class="mb-5">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h6 class="fw-bold mb-0 text-primary"><i class="ph ph-graduation-cap me-2"></i>{{ ins.career_title }}</h6>
-                                        <span class="badge bg-soft-success">Promedio: -</span>
+                                        <span class="badge bg-soft-success text-success fw-bold">Promedio: {{ calculateAverage(ins.subjects) }}</span>
                                     </div>
                                     
                                     <div v-if="ins.subjects && ins.subjects.length > 0">
@@ -244,7 +254,9 @@ export default {
                                                             <li v-for="sub in filterSubjects(ins.subjects, year, q)" :key="sub.id" 
                                                                 class="list-group-item px-0 py-1 d-flex justify-content-between align-items-center border-dashed">
                                                                 <span>{{ sub.name }}</span>
-                                                                <span class="badge border text-muted extra-small">Pendiente</span>
+                                                                <span class="badge extra-small" :class="getGradeBadgeClass(sub.grade_status)">
+                                                                    {{ sub.grade ? sub.grade : (sub.grade_status || 'Pendiente') }}
+                                                                </span>
                                                             </li>
                                                             <li v-if="filterSubjects(ins.subjects, year, q).length === 0" class="list-group-item px-0 py-1 text-muted extra-small italic">
                                                                 No hay materias asigancdas.
@@ -269,28 +281,38 @@ export default {
 
                         <!-- TAB: PAYMENTS -->
                         <div v-show="activeTab === 'payments'" class="fade-in">
-                            <div class="alert alert-info py-2 d-flex align-items-center small mb-4">
-                                <i class="ph ph-info me-2 fs-5"></i>
-                                Próximo vencimiento: 10 de Abril, 2024
-                            </div>
                             <h6 class="fw-bold mb-3">Historial de Pagos</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm align-middle small">
                                     <thead class="table-light">
                                         <tr>
+                                            <th>Tipo</th>
                                             <th>Concepto</th>
-                                            <th>Fecha</th>
+                                            <th>Vencimiento</th>
                                             <th>Monto</th>
                                             <th>Estado</th>
                                         </tr>
                                     </thead>
                                     <tbody v-if="student.payments && student.payments.length > 0">
                                         <tr v-for="p in student.payments" :key="p.id">
-                                            <td>{{ p.concept }}</td>
-                                            <td>{{ formatDate(p.payment_date) }}</td>
+                                            <td class="text-center">
+                                                <i v-if="p.type === 'Matrícula'" class="ph ph-star text-warning fs-5" title="Matrícula"></i>
+                                                <i v-else-if="p.type === 'Cuota'" class="ph ph-calendar text-primary fs-5" title="Cuota"></i>
+                                                <i v-else class="ph ph-tag text-secondary fs-5" title="Otro"></i>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold">{{ p.concept }}</span>
+                                                <div v-if="p.details" class="extra-small text-muted">{{ formatDetails(p.details) }}</div>
+                                            </td>
+                                            <td>
+                                                <span :class="getDueDateClass(p.due_date, p.status)">
+                                                    {{ formatDate(p.due_date) }}
+                                                    <span v-if="p.status === 'Pendiente'" class="d-block extra-small">{{ getDueDaysText(p.due_date) }}</span>
+                                                </span>
+                                            </td>
                                             <td class="fw-bold text-dark">$ {{ formatCurrency(p.amount) }}</td>
                                             <td>
-                                                <span :class="p.status === 'Pagado' ? 'text-success' : 'text-danger'" class="fw-bold">
+                                                <span class="badge rounded-pill" :class="p.status === 'Pagado' ? 'bg-success' : (p.status === 'Anulado' ? 'bg-secondary' : (isLate(p.due_date) ? 'bg-danger' : 'bg-warning text-dark'))">
                                                     {{ p.status }}
                                                 </span>
                                             </td>
@@ -298,7 +320,7 @@ export default {
                                     </tbody>
                                     <tbody v-else>
                                         <tr>
-                                            <td colspan="4" class="text-center py-4 text-muted small">
+                                            <td colspan="5" class="text-center py-4 text-muted small">
                                                 No hay pagos registrados para este alumno.
                                             </td>
                                         </tr>
@@ -369,6 +391,7 @@ export default {
         return {
             student: null,
             loading: true,
+            sendingLegajo: false,
             activeTab: 'general'
         }
     },
@@ -429,6 +452,35 @@ export default {
         printDetail() {
             window.print();
         },
+        async sendLegajo() {
+            if (!this.student.email) {
+                alert("El alumno no tiene un correo electrónico registrado.");
+                return;
+            }
+
+            if (!confirm(`¿Estás seguro de enviar el resumen de legajo a ${this.student.email}?`)) {
+                return;
+            }
+
+            this.sendingLegajo = true;
+            try {
+                const response = await fetch(window.API_BASE + `/api/students/${this.student.id}/send-legajo`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert("Legajo enviado con éxito.");
+                } else {
+                    alert("Error: " + result.message);
+                }
+            } catch (error) {
+                console.error("Error sending legajo:", error);
+                alert("Ocurrió un error al intentar enviar el legajo.");
+            } finally {
+                this.sendingLegajo = false;
+            }
+        },
         formatDate(dateStr) {
             if (!dateStr) return '-';
             const date = new Date(dateStr);
@@ -440,12 +492,61 @@ export default {
                 maximumFractionDigits: 2
             });
         },
+        formatDetails(details) {
+            try {
+                const parsed = JSON.parse(details);
+                return Array.isArray(parsed) ? parsed.join(', ') : details;
+            } catch (e) {
+                return details;
+            }
+        },
+        isLate(dueDate) {
+            if (!dueDate) return false;
+            return new Date(dueDate) < new Date();
+        },
+        getDueDateClass(dueDate, status) {
+            if (status === 'Pagado' || status === 'Anulado') return 'text-muted';
+            if (this.isLate(dueDate)) return 'text-danger fw-bold';
+            return 'text-success fw-bold';
+        },
+        getDueDaysText(dueDate) {
+            if (!dueDate) return '';
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const due = new Date(dueDate);
+            const diffTime = due - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) return `Atrasado por ${Math.abs(diffDays)} días`;
+            if (diffDays === 0) return `Vence hoy`;
+            return `Vence en ${diffDays} días`;
+        },
         getYears(subjects) {
             const years = [...new Set(subjects.map(s => s.academic_year))];
             return years.sort((a, b) => a - b);
         },
         filterSubjects(subjects, year, quarter) {
             return subjects.filter(s => s.academic_year == year && s.quarter == quarter);
+        },
+        getGradeBadgeClass(status) {
+            if (!status) return 'border text-muted';
+            let lower = status.toLowerCase();
+            if (lower.includes('aprobado') || lower === 'regular') return 'bg-success';
+            if (lower.includes('desaprobado') || lower === 'libre') return 'bg-danger';
+            return 'bg-secondary';
+        },
+        calculateAverage(subjects) {
+            if (!subjects || !subjects.length) return '-';
+            let sum = 0;
+            let count = 0;
+            subjects.forEach(s => {
+                let num = parseFloat(s.grade);
+                if (!isNaN(num)) {
+                    sum += num;
+                    count++;
+                }
+            });
+            return count > 0 ? (sum / count).toFixed(2) : '-';
         }
     }
 }

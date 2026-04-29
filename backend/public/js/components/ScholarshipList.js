@@ -4,13 +4,19 @@ export default {
         <div class="card-modern p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="fw-bold mb-0">Tipos de Beca</h5>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-success btn-sm shadow-sm" @click="exportToExcel">
-                        <i class="ph ph-file-xls me-1"></i> Exportar a Excel
-                    </button>
-                    <button class="btn btn-primary shadow-sm btn-sm" @click="showAddModal = true">
-                        <i class="ph ph-plus-circle me-1"></i> Nueva Beca
-                    </button>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="showInactiveToggle" v-model="showInactive">
+                        <label class="form-check-label small text-muted fw-bold" for="showInactiveToggle">Mostrar dadas de baja</label>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-success btn-sm shadow-sm" @click="exportToExcel">
+                            <i class="ph ph-file-xls me-1"></i> Exportar a Excel
+                        </button>
+                        <button class="btn btn-primary shadow-sm btn-sm" @click="showAddModal = true">
+                            <i class="ph ph-plus-circle me-1"></i> Nueva Beca
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -20,13 +26,19 @@ export default {
                         <tr>
                             <th>Tipo de Beca</th>
                             <th>Descripción</th>
+                            <th>Estado</th>
                             <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="scholarship in scholarships" :key="scholarship.id">
+                        <tr v-for="scholarship in scholarships" :key="scholarship.id" v-show="scholarship.status === 'active' || showInactive">
                             <td class="fw-semibold text-primary" style="cursor: pointer;" @click="editScholarship(scholarship)">{{ scholarship.name }}</td>
                             <td class="text-muted small">{{ scholarship.description || '-' }}</td>
+                            <td>
+                                <span class="badge rounded-pill" :class="scholarship.status === 'active' ? 'badge-soft-success' : 'badge-soft-secondary'">
+                                    {{ scholarship.status === 'active' ? 'Activa' : 'Inactiva' }}
+                                </span>
+                            </td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
                                     <button class="btn btn-sm btn-outline-primary" @click="editScholarship(scholarship)" title="Editar">
@@ -50,7 +62,7 @@ export default {
 
             <div class="d-flex justify-content-between align-items-center mt-3 border-top pt-3">
                 <div class="text-muted small">
-                    Cantidad de Tipos de Beca: <span class="fw-bold">{{ scholarships.length }}</span>
+                    Cantidad de Tipos de Beca: <span class="fw-bold">{{ scholarships.filter(s => s.status === 'active' || showInactive).length }}</span>
                 </div>
             </div>
         </div>
@@ -87,6 +99,7 @@ export default {
     data() {
         return {
             scholarships: [],
+            showInactive: false,
             showAddModal: false,
             editingId: null,
             newScholarship: { name: '', description: '', status: 'active' }

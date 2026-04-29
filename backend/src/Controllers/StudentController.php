@@ -6,6 +6,9 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Repositories\StudentRepositoryMySQL;
 use App\Repositories\StudentRepositoryInterface;
+use App\Repositories\CareerRepositoryMySQL;
+use App\Notifications\CareerInscriptionNotification;
+use App\Notifications\StudentLegajoNotification;
 
 class StudentController {
     
@@ -97,6 +100,26 @@ class StudentController {
         $success = $this->repository->create($data);
         
         if ($success) {
+            // Mandar Notificaciones por Mail para inscripciones iniciales
+            if (!empty($data['inscriptions']) && is_array($data['inscriptions'])) {
+                try {
+                    $student = $this->repository->getById($success); // success returns the ID
+                    $careerRepo = new CareerRepositoryMySQL();
+                    foreach ($data['inscriptions'] as $ins) {
+                        $careerId = $ins['career_id'] ?? null;
+                        if ($careerId) {
+                            $career = $careerRepo->getById($careerId);
+                            if ($student && $career) {
+                                $notification = new CareerInscriptionNotification($student, $career, $ins);
+                                $notification->send();
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    error_log("Error al enviar notificaciones de inscripción inicial: " . $e->getMessage());
+                }
+            }
+
             $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Estudiante creado exitosamente']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
         }
@@ -171,6 +194,20 @@ class StudentController {
         $success = $this->repository->inscribeCareer($studentId, $data);
         
         if ($success) {
+            // Mandar Notificación por Mail
+            try {
+                $student = $this->repository->getById($studentId);
+                $careerRepo = new CareerRepositoryMySQL();
+                $career = $careerRepo->getById($data['career_id']);
+                
+                if ($student && $career) {
+                    $notification = new CareerInscriptionNotification($student, $career, $data);
+                    $notification->send();
+                }
+            } catch (\Exception $e) {
+                error_log("Error al enviar notificación de inscripción: " . $e->getMessage());
+            }
+
             $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Inscripción realizada exitosamente']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
         }
@@ -267,5 +304,31 @@ class StudentController {
             ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
             ->withHeader('Pragma', 'no-cache')
             ->withHeader('Expires', '0');
+    }
+
+    public function sendLegajoEmail(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $student = $this->repository->getById($id);
+        
+        if (!$student) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Estudiante no encontrado']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+
+        if (empty($student['email'])) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'El estudiante no tiene email registrado']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        try {
+            $notification = new StudentLegajoNotification($student);
+            $notification->send();
+            
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Legajo enviado correctamente']));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al enviar: ' . $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
     }
 }

@@ -1,0 +1,23 @@
+<br />
+<b>Warning</b>:  mkdir(): Permission denied in <b>/var/www/html/src/Services/EmailService.php</b> on line <b>17</b><br />
+<br />
+<b>Warning</b>:  file_put_contents(/var/www/html/src/Config/../../logs/emails.log): Failed to open stream: No such file or directory in <b>/var/www/html/src/Services/EmailService.php</b> on line <b>21</b><br />
+<!doctype html><html lang="en">    <head>        <meta charset="utf-8">        <meta name="viewport" content="width=device-width, initial-scale=1">        <title>Slim Application Error</title>        <style>            body{margin:0;padding:30px;font:12px/1.5 Helvetica,Arial,Verdana,sans-serif}            h1{margin:0;font-size:48px;font-weight:normal;line-height:48px}            strong{display:inline-block;width:65px}        </style>    </head>    <body>        <h1>Slim Application Error</h1>        <div><p>The application could not run because of the following error:</p><h2>Details</h2><div><strong>Type:</strong> Error</div><div><strong>Code:</strong> 0</div><div><strong>Message:</strong> Class &quot;EnvialoSimple\Transaccional&quot; not found</div><div><strong>File:</strong> /var/www/html/src/Services/EmailService.php</div><div><strong>Line:</strong> 29</div><h2>Trace</h2><pre>#0 /var/www/html/src/Notifications/EmailNotification.php(18): App\Services\EmailService::send(&#039;arielerocca@gma...&#039;, &#039;Resumen de Lega...&#039;, &#039;Hola Juan Perez...&#039;)
+#1 /var/www/html/src/Controllers/StudentController.php(325): App\Notifications\EmailNotification-&gt;send()
+#2 /var/www/html/vendor/slim/slim/Slim/Handlers/Strategies/RequestResponse.php(39): App\Controllers\StudentController-&gt;sendLegajoEmail(Object(Slim\Psr7\Request), Object(Slim\Psr7\Response), Array)
+#3 /var/www/html/vendor/slim/slim/Slim/Routing/Route.php(362): Slim\Handlers\Strategies\RequestResponse-&gt;__invoke(Array, Object(Slim\Psr7\Request), Object(Slim\Psr7\Response), Array)
+#4 /var/www/html/vendor/slim/slim/Slim/MiddlewareDispatcher.php(73): Slim\Routing\Route-&gt;handle(Object(Slim\Psr7\Request))
+#5 /var/www/html/vendor/slim/slim/Slim/MiddlewareDispatcher.php(73): Slim\MiddlewareDispatcher-&gt;handle(Object(Slim\Psr7\Request))
+#6 /var/www/html/vendor/slim/slim/Slim/Routing/Route.php(321): Slim\MiddlewareDispatcher-&gt;handle(Object(Slim\Psr7\Request))
+#7 /var/www/html/vendor/slim/slim/Slim/Routing/RouteRunner.php(74): Slim\Routing\Route-&gt;run(Object(Slim\Psr7\Request))
+#8 /var/www/html/vendor/slim/slim/Slim/Middleware/RoutingMiddleware.php(45): Slim\Routing\RouteRunner-&gt;handle(Object(Slim\Psr7\Request))
+#9 /var/www/html/vendor/slim/slim/Slim/MiddlewareDispatcher.php(129): Slim\Middleware\RoutingMiddleware-&gt;process(Object(Slim\Psr7\Request), Object(Slim\Routing\RouteRunner))
+#10 /var/www/html/vendor/slim/slim/Slim/Middleware/ErrorMiddleware.php(77): Psr\Http\Server\RequestHandlerInterface@anonymous-&gt;handle(Object(Slim\Psr7\Request))
+#11 /var/www/html/vendor/slim/slim/Slim/MiddlewareDispatcher.php(129): Slim\Middleware\ErrorMiddleware-&gt;process(Object(Slim\Psr7\Request), Object(Psr\Http\Server\RequestHandlerInterface@anonymous))
+#12 /var/www/html/public/index.php(29): Psr\Http\Server\RequestHandlerInterface@anonymous-&gt;handle(Object(Slim\Psr7\Request))
+#13 /var/www/html/vendor/slim/slim/Slim/MiddlewareDispatcher.php(283): {closure}(Object(Slim\Psr7\Request), Object(Psr\Http\Server\RequestHandlerInterface@anonymous))
+#14 /var/www/html/vendor/slim/slim/Slim/MiddlewareDispatcher.php(73): Psr\Http\Server\RequestHandlerInterface@anonymous-&gt;handle(Object(Slim\Psr7\Request))
+#15 /var/www/html/vendor/slim/slim/Slim/App.php(209): Slim\MiddlewareDispatcher-&gt;handle(Object(Slim\Psr7\Request))
+#16 /var/www/html/vendor/slim/slim/Slim/App.php(193): Slim\App-&gt;handle(Object(Slim\Psr7\Request))
+#17 /var/www/html/public/index.php(125): Slim\App-&gt;run()
+#18 {main}</pre></div>        <a href="#" onclick="window.history.go(-1)">Go Back</a>    </body></html>

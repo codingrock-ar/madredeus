@@ -10,5 +10,12 @@ return [
     'DB_HOST' => 'db', 
     'DB_NAME' => 'madredeus_db',
     'DB_USER' => 'root',
-    'DB_PASS' => 'secret'
+    'DB_PASS' => 'secret',
+
+    'MAIL' => [
+        'from_email' => 'sistema@madredeus.edu.ar',
+        'from_name' => 'Instituto Madre Deus',
+        'log_path' => __DIR__ . '/../../logs/emails.log',
+        'envialo_simple_api_key' => 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE3NzY5MTEyOTcsImV4cCI6NDkzMjU4NDg5Nywicm9sZXMiOlsiUk9MRV9BRE1JTiIsIlJPTEVfVVNFUiJdLCJraWQiOiI2OWU5ODNjMTRjZTFlMjk2NDAwZTZkZDQiLCJhaWQiOiI2OWU5ODI1MjQxZDJlMjY1YzYwMzI5OWUiLCJ1c2VybmFtZSI6ImFyaWVsZXJvY2NhQGdtYWlsLmNvbSJ9.se4pibCFXu-pcZ3E5gYbnXKBzqoWRjJ9Q2mj0LzG-64x3sdw2yTzhuISvT2iyCOH-OnY3sYLlE5tDHgYafy-PXLJ02xQioAkE-TrOZtltq1n3RkHreCAdGxYJvnp5JqkBJQXfzVb6zb4eDxrF-k8Q0fH0zR8AQRo35MYSygUC6EbJkOZpVl8t2PGxlpe6h0j9EkrCzjei_k73Rtk-fBF8OttHhmpqZuSiYdZUhV1jVWaegfjvrmRhG3qjXKHIwnmZ0SH4Jdj2fvZek8tidC16e9CpHjh8DL3eRPJFiqEP9wT8lqmfrfvMUoH7o8KrBQVNHG1_E69osKbySWKczaXEg'
+    ]
 ];

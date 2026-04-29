@@ -58,6 +58,9 @@ export default {
                     <label class="form-label small fw-bold text-muted mb-1">Carrera</label>
                     <select class="form-select" v-model="filters.career" @change="fetchStudents">
                         <option value="">Todas las Carreras</option>
+                        <option value="none">Ninguna</option>
+                        <option value="single">1 Carrera</option>
+                        <option value="multiple">+ de 1 Carrera</option>
                         <option v-for="career in careers" :key="career.id" :value="career.title">
                             {{ career.title }}
                         </option>
@@ -71,7 +74,6 @@ export default {
                         <option value="B">Comisión B</option>
                         <option value="C">Comisión C</option>
                         <option value="D">Comisión D</option>
-                        <option value="E">Comisión E</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -92,15 +94,22 @@ export default {
                         <option value="TN">Noche (TN)</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted mb-1">Estado</label>
-                    <select class="form-select" v-model="filters.status" @change="fetchStudents">
-                        <option value="">Todos los Estados</option>
-                        <option value="En Curso">En Curso</option>
-                        <option value="Abandono">Abandono</option>
-                        <option value="Egresado">Egresado</option>
-                        <option value="Finalizó Cursada">Finalizó Cursada</option>
-                    </select>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="d-flex gap-2 w-100">
+                        <div class="flex-grow-1">
+                            <label class="form-label small fw-bold text-muted mb-1">Estado</label>
+                            <select class="form-select" v-model="filters.status" @change="fetchStudents">
+                                <option value="">Todos los Estados</option>
+                                <option value="En Curso">En Curso</option>
+                                <option value="Abandono">Abandono</option>
+                                <option value="Egresado">Egresado</option>
+                                <option value="Finalizó Cursada">Finalizó Cursada</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-outline-secondary" @click="clearFilters" title="Limpiar Filtros" style="height: 38px; margin-top: 27px;">
+                            <i class="ph ph-arrow-counter-clockwise"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -194,8 +203,8 @@ export default {
                                 <i class="ph ph-caret-left"></i> Anterior
                             </a>
                         </li>
-                        <li class="page-item" v-for="p in meta.total_pages" :key="p" :class="{ active: meta.page === p }">
-                            <a class="page-link" href="#" @click.prevent="goToPage(p)">{{ p }}</a>
+                        <li class="page-item" v-for="p in visiblePages" :key="p" :class="{ active: meta.page === p, disabled: p === '...' }">
+                            <a class="page-link" href="#" @click.prevent="p !== '...' && goToPage(p)">{{ p }}</a>
                         </li>
                         <li class="page-item" :class="{ disabled: meta.page === meta.total_pages }">
                             <a class="page-link" href="#" @click.prevent="goToPage(meta.page + 1)">
@@ -233,6 +242,29 @@ export default {
             arrowCounter: -1,
             debounceTimeout: null,
             tooltipInstances: []
+        }
+    },
+    computed: {
+        visiblePages() {
+            const pages = [];
+            const total = this.meta.total_pages;
+            const current = this.meta.page;
+            
+            if (total <= 10) {
+                for (let i = 1; i <= total; i++) pages.push(i);
+            } else {
+                pages.push(1);
+                if (current > 4) pages.push('...');
+                
+                const start = Math.max(2, current - 2);
+                const end = Math.min(total - 1, current + 2);
+                
+                for (let i = start; i <= end; i++) pages.push(i);
+                
+                if (current < total - 3) pages.push('...');
+                pages.push(total);
+            }
+            return pages;
         }
     },
     methods: {
@@ -324,6 +356,9 @@ export default {
             this.destroyTooltips();
             this.loading = true;
             try {
+                // Persistencia: Guardar filtros actuales
+                sessionStorage.setItem('student_filters', JSON.stringify(this.filters));
+
                 const token = localStorage.getItem('token');
                 const query = new URLSearchParams({
                     search: this.filters.search,
@@ -399,9 +434,33 @@ export default {
             setTimeout(() => {
                 this.showAutocomplete = false;
             }, 200);
+        },
+        clearFilters() {
+            this.filters = {
+                search: '',
+                career: '',
+                commission: '',
+                academic_cycle: '',
+                shift: '',
+                status: '',
+                page: 1,
+                per_page: 10
+            };
+            sessionStorage.removeItem('student_filters');
+            this.fetchStudents();
         }
     },
     async mounted() {
+        // Cargar filtros persistentes si existen
+        const savedFilters = sessionStorage.getItem('student_filters');
+        if (savedFilters) {
+            try {
+                this.filters = JSON.parse(savedFilters);
+            } catch (e) {
+                console.error("Error parsing saved filters", e);
+            }
+        }
+
         await this.fetchCareers();
         await this.fetchStudents();
         document.addEventListener('click', this.handleClickOutside);

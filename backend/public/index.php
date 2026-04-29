@@ -46,6 +46,9 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
         $studentGroup->post('', \App\Controllers\StudentController::class . ':create');
         $studentGroup->post('/bulk-commission', \App\Controllers\StudentController::class . ':bulkUpdateCommission');
         $studentGroup->post('/{id}/inscriptions', \App\Controllers\StudentController::class . ':inscribe');
+        $studentGroup->post('/{id}/inscriptions/{inscription_id}/grades', \App\Controllers\GradeController::class . ':saveGrades');
+        $studentGroup->post('/{id}/send-legajo', \App\Controllers\StudentController::class . ':sendLegajoEmail');
+        $studentGroup->post('/{id}/generate-payments', \App\Controllers\PaymentController::class . ':generatePayments');
         $studentGroup->put('/{id}', \App\Controllers\StudentController::class . ':update');
         $studentGroup->delete('/{id}', \App\Controllers\StudentController::class . ':delete');
     });
@@ -101,9 +104,11 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     // Pagos
     $group->get('/payments', \App\Controllers\PaymentController::class . ':index');
     $group->get('/payments/collection-planilla', \App\Controllers\PaymentController::class . ':collectionPlanilla');
+    $group->get('/payments/last-execution', \App\Controllers\PaymentController::class . ':lastExecution');
     $group->get('/payments/{id}', \App\Controllers\PaymentController::class . ':show');
     $group->post('/payments', \App\Controllers\PaymentController::class . ':create');
     $group->put('/payments/{id}', \App\Controllers\PaymentController::class . ':update');
+    $group->post('/payments/{id}/notify-late', \App\Controllers\PaymentController::class . ':notifyLate');
     $group->post('/reminders/payment', \App\Controllers\ReminderController::class . ':payReminder');
     $group->post('/reminders/documentation', \App\Controllers\ReminderController::class . ':docReminder');
     $group->delete('/payments/{id}', \App\Controllers\PaymentController::class . ':delete');

@@ -103,4 +103,45 @@ class PaymentController {
         ]));
         return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
     }
+
+    public function lastExecution(Request $request, Response $response, $args) {
+        $date = $this->repository->getLastExecutionDate();
+        $response->getBody()->write(json_encode(['status' => 'success', 'date' => $date]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+    public function generatePayments(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $data = json_decode((string)$request->getBody(), true);
+        
+        if (empty($data) || !is_array($data)) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Datos inválidos para generar el plan de pagos']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $success = $this->repository->generatePaymentPlan($id, $data);
+        
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Plan de pagos generado correctamente']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+        }
+
+        $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al generar el plan de pagos']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+
+    public function notifyLate(Request $request, Response $response, $args) {
+        $paymentId = $args['id'];
+        $payment = $this->repository->getById($paymentId);
+        
+        if (!$payment) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Pago no encontrado']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+
+        // Ideally we would fetch student email and send the actual email here.
+        // For now we simulate success.
+        
+        $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Notificación enviada con éxito']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    }
 }

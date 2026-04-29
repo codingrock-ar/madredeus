@@ -41,11 +41,14 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             // Fetch subjects for each inscription
             foreach ($student['inscriptions'] as &$inscription) {
                 $stmt = $this->db->prepare("
-                    SELECT * FROM subjects 
-                    WHERE career_id = :career_id 
-                    ORDER BY academic_year, quarter, name
+                    SELECT s.*, g.grade, g.status as grade_status, g.id as grade_id
+                    FROM subjects s
+                    LEFT JOIN student_grades g ON s.id = g.subject_id AND g.inscription_id = :inscription_id
+                    WHERE s.career_id = :career_id 
+                    ORDER BY s.academic_year, s.quarter, s.name
                 ");
                 $stmt->bindParam(':career_id', $inscription['career_id'], PDO::PARAM_INT);
+                $stmt->bindParam(':inscription_id', $inscription['id'], PDO::PARAM_INT);
                 $stmt->execute();
                 $inscription['subjects'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
@@ -54,7 +57,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $stmt = $this->db->prepare("
                 SELECT * FROM payments 
                 WHERE student_id = :student_id 
-                ORDER BY payment_date DESC
+                ORDER BY COALESCE(payment_date, due_date) ASC
             ");
             $stmt->bindParam(':student_id', $id, PDO::PARAM_INT);
             $stmt->execute();
@@ -99,8 +102,16 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         $insParams = [];
 
         if (!empty($params['career'])) {
-            $insFilters[] = "c2.title = :career";
-            $insParams[':career'] = $params['career'];
+            if ($params['career'] === 'none') {
+                $where[] = "NOT EXISTS (SELECT 1 FROM student_career_inscriptions sci3 WHERE sci3.student_id = s.id)";
+            } else if ($params['career'] === 'single') {
+                $where[] = "(SELECT COUNT(*) FROM student_career_inscriptions sci4 WHERE sci4.student_id = s.id) = 1";
+            } else if ($params['career'] === 'multiple') {
+                $where[] = "(SELECT COUNT(*) FROM student_career_inscriptions sci4 WHERE sci4.student_id = s.id) > 1";
+            } else {
+                $insFilters[] = "c2.title = :career";
+                $insParams[':career'] = $params['career'];
+            }
         }
         if (!empty($params['commission'])) {
             $insFilters[] = "sci2.commission = :commission";
@@ -247,6 +258,11 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':book' => $ins['book'] ?? null,
                             ':folio' => $ins['folio'] ?? null
                         ]);
+
+                        if (($ins['status'] ?? '') === 'Abandono') {
+                            $paymentRepo = new \App\Repositories\PaymentRepositoryMySQL();
+                            $paymentRepo->cancelPendingByStudent($studentId);
+                        }
                     }
                 }
             } else if (!empty($data['career'])) {
@@ -270,6 +286,11 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         ':book' => $data['book'] ?? null,
                         ':folio' => $data['folio'] ?? null
                     ]);
+
+                    if (($data['status'] ?? '') === 'Abandono') {
+                        $paymentRepo = new \App\Repositories\PaymentRepositoryMySQL();
+                        $paymentRepo->cancelPendingByStudent($studentId);
+                    }
                 }
             }
 
@@ -369,6 +390,11 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':id' => $ins['id'],
                             ':student_id' => $id
                         ]);
+
+                        if (($ins['status'] ?? '') === 'Abandono') {
+                            $paymentRepo = new \App\Repositories\PaymentRepositoryMySQL();
+                            $paymentRepo->cancelPendingByStudent($id);
+                        }
                     } else {
                         // Create new
                         $stmt = $this->db->prepare("
@@ -385,6 +411,11 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':book' => $ins['book'] ?? null,
                             ':folio' => $ins['folio'] ?? null
                         ]);
+
+                        if (($ins['status'] ?? '') === 'Abandono') {
+                            $paymentRepo = new \App\Repositories\PaymentRepositoryMySQL();
+                            $paymentRepo->cancelPendingByStudent($id);
+                        }
                     }
                 }
             } else if (!empty($data['career'])) {
@@ -398,6 +429,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                     $stmt = $this->db->prepare("SELECT id FROM student_career_inscriptions WHERE student_id = :student_id AND career_id = :career_id");
                     $stmt->execute([':student_id' => $id, ':career_id' => $careerId]);
                     $existing = $stmt->fetch();
+                    $status = $data['status'] ?? 'En Curso';
 
                     if ($existing) {
                         $stmt = $this->db->prepare("
@@ -409,7 +441,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':commission' => $data['commission'] ?? null,
                             ':shift' => $data['shift'] ?? null,
                             ':academic_cycle' => $data['academic_cycle'] ?? null,
-                            ':status' => $data['status'] ?? 'En Curso',
+                            ':status' => $status,
                             ':book' => $data['book'] ?? null,
                             ':folio' => $data['folio'] ?? null,
                             ':id' => $existing['id']
@@ -425,10 +457,15 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':commission' => $data['commission'] ?? null,
                             ':shift' => $data['shift'] ?? null,
                             ':academic_cycle' => $data['academic_cycle'] ?? null,
-                            ':status' => $data['status'] ?? 'En Curso',
+                            ':status' => $status,
                             ':book' => $data['book'] ?? null,
                             ':folio' => $data['folio'] ?? null
                         ]);
+                    }
+
+                    if ($status === 'Abandono') {
+                        $paymentRepo = new \App\Repositories\PaymentRepositoryMySQL();
+                        $paymentRepo->cancelPendingByStudent($id);
                     }
                 }
             }
@@ -470,8 +507,16 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         $insFilters = [];
         $insParams = [];
         if (!empty($filters['career'])) {
-            $insFilters[] = "c2.title = :career";
-            $insParams[':career'] = $filters['career'];
+            if ($filters['career'] === 'none') {
+                $where[] = "NOT EXISTS (SELECT 1 FROM student_career_inscriptions sci3 WHERE sci3.student_id = s.id)";
+            } else if ($filters['career'] === 'single') {
+                $where[] = "(SELECT COUNT(*) FROM student_career_inscriptions sci4 WHERE sci4.student_id = s.id) = 1";
+            } else if ($filters['career'] === 'multiple') {
+                $where[] = "(SELECT COUNT(*) FROM student_career_inscriptions sci4 WHERE sci4.student_id = s.id) > 1";
+            } else {
+                $insFilters[] = "c2.title = :career";
+                $insParams[':career'] = $filters['career'];
+            }
         }
         if (!empty($filters['academic_cycle'])) {
             $insFilters[] = "sci2.academic_cycle = :academic_cycle";
