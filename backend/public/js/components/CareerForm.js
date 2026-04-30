@@ -381,7 +381,7 @@ export default {
                 const token = localStorage.getItem('token');
                 const id = this.career.id;
                 const method = id ? 'PUT' : 'POST';
-                const endpoint = id ? '/api/careers/' + id : '/api/careers';
+                const endpoint = id ? window.API_BASE + '/api/careers/' + id : window.API_BASE + '/api/careers';
 
                 const response = await fetch(endpoint, {
                     method: method,

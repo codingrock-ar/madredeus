@@ -170,8 +170,8 @@ export default {
         async fetchInitialData() {
             try {
                 const [cRes, cyRes] = await Promise.all([
-                    fetch('/api/careers'),
-                    fetch('/api/config/cycles')
+                    fetch(window.API_BASE + '/api/careers'),
+                    fetch(window.API_BASE + '/api/config/cycles')
                 ]);
                 const cData = await cRes.json();
                 const cyData = await cyRes.json();
@@ -190,7 +190,7 @@ export default {
                 return;
             }
             try {
-                const res = await fetch(`/api/students/autocomplete?q=${this.studentSearch}`);
+                const res = await fetch(window.API_BASE + `/api/students/autocomplete?q=${this.studentSearch}`);
                 const data = await res.json();
                 if (data.status === 'success') {
                     this.suggestions = data.data;
@@ -203,7 +203,7 @@ export default {
         async selectStudent(s) {
             this.loading = true;
             try {
-                const res = await fetch(`/api/students/${s.id}`);
+                const res = await fetch(window.API_BASE + `/api/students/${s.id}`);
                 const data = await res.json();
                 if (data.status === 'success') {
                     this.selectedStudent = data.data;
@@ -240,7 +240,7 @@ export default {
 
             this.loading = true;
             try {
-                const res = await fetch(`/api/students/${this.selectedStudent.id}/inscriptions`, {
+                const res = await fetch(window.API_BASE + `/api/students/${this.selectedStudent.id}/inscriptions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.form)
@@ -262,7 +262,7 @@ export default {
             if (!this.selectedStudent) return;
             this.sendingReminder = true;
             try {
-                const response = await fetch('/api/reminders/documentation', {
+                const response = await fetch(window.API_BASE + '/api/reminders/documentation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ student_id: this.selectedStudent.id })

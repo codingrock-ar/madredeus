@@ -617,7 +617,7 @@ export default {
                 const token = localStorage.getItem('token');
                 const id = this.teacher.id;
                 const method = id ? 'PUT' : 'POST';
-                const endpoint = id ? '/api/teachers/' + id : '/api/teachers';
+                const endpoint = id ? window.API_BASE + '/api/teachers/' + id : window.API_BASE + '/api/teachers';
 
                 const response = await fetch(endpoint, {
                     method: method,

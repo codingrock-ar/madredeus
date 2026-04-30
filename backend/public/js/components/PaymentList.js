@@ -307,7 +307,7 @@ export default {
     methods: {
         async fetchCareers() {
             try {
-                const response = await fetch('/api/careers');
+                const response = await fetch(window.API_BASE + '/api/careers');
                 const result = await response.json();
                 if (result.status === 'success') {
                     this.careers = result.data;
@@ -331,7 +331,7 @@ export default {
                     page: this.page,
                     per_page: this.perPage
                 });
-                const response = await fetch(`/api/payments?${params.toString()}`);
+                const response = await fetch(window.API_BASE + `/api/payments?${params.toString()}`);
                 const result = await response.json();
                 if (result.status === 'success') {
                     this.payments = result.data.data;
@@ -354,7 +354,7 @@ export default {
                     search: this.filters.search,
                     cycle: this.filters.cycle
                 });
-                const response = await fetch(`/api/payments/collection-planilla?${params}`);
+                const response = await fetch(window.API_BASE + `/api/payments/collection-planilla?${params}`);
                 const result = await response.json();
                 if (result.status === 'success') {
                     this.planilla = result.data;
@@ -407,7 +407,7 @@ export default {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/api/payments/${id}`, { method: 'DELETE' });
+                    const response = await fetch(window.API_BASE + `/api/payments/${id}`, { method: 'DELETE' });
                     const res = await response.json();
                     if (res.status === 'success') {
                         Swal.fire('Eliminado', 'el pago ha sido eliminado.', 'success');
@@ -487,7 +487,7 @@ export default {
                             if (search.length < 3) return;
                             
                             try {
-                                const response = await fetch(`/api/students/autocomplete?q=${search}`);
+                                const response = await fetch(window.API_BASE + `/api/students/autocomplete?q=${search}`);
                                 const result = await response.json();
                                 if (result.status === 'success') {
                                     studentSelect.innerHTML = '<option value="">Seleccione un alumno...</option>';
@@ -521,7 +521,7 @@ export default {
 
             if (formValues) {
                 try {
-                    const response = await fetch('/api/payments', {
+                    const response = await fetch(window.API_BASE + '/api/payments', {
                         method: 'POST',
                         body: JSON.stringify(formValues),
                         headers: { 'Content-Type': 'application/json' }
@@ -605,7 +605,7 @@ export default {
 
             if (formValues) {
                 try {
-                    const response = await fetch(`/api/payments/${payment.id}`, {
+                    const response = await fetch(window.API_BASE + `/api/payments/${payment.id}`, {
                         method: 'PUT',
                         body: JSON.stringify(formValues),
                         headers: { 'Content-Type': 'application/json' }
@@ -634,7 +634,7 @@ export default {
             if (!confirmed.isConfirmed) return;
 
             try {
-                const response = await fetch('/api/reminders/payment', {
+                const response = await fetch(window.API_BASE + '/api/reminders/payment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ student_id: student.student_id })

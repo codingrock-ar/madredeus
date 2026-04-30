@@ -734,7 +734,7 @@ export default {
                 const token = localStorage.getItem('token');
                 const id = this.student.id;
                 const method = id ? 'PUT' : 'POST';
-                const endpoint = id ? '/api/students/' + id : '/api/students';
+                const endpoint = id ? window.API_BASE + '/api/students/' + id : window.API_BASE + '/api/students';
 
                 const response = await fetch(endpoint, {
                     method: method,
@@ -1157,7 +1157,7 @@ export default {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/api/payments/${id}`, { method: 'DELETE' });
+                    const response = await fetch(window.API_BASE + `/api/payments/${id}`, { method: 'DELETE' });
                     const res = await response.json();
                     if (res.status === 'success') {
                         Swal.fire('Eliminado', 'el pago ha sido eliminado.', 'success');

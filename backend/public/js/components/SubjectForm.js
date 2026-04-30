@@ -158,7 +158,7 @@ export default {
                 const token = localStorage.getItem('token');
                 const id = this.subject.id;
                 const method = id ? 'PUT' : 'POST';
-                const endpoint = id ? '/api/subjects/' + id : '/api/subjects';
+                const endpoint = id ? window.API_BASE + '/api/subjects/' + id : window.API_BASE + '/api/subjects';
 
                 const response = await fetch(endpoint, {
                     method: method,

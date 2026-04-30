@@ -227,9 +227,9 @@ export default {
         async fetchMetadata() {
             try {
                 const [careersRes, cyclesRes, scholarshipsRes] = await Promise.all([
-                    fetch('/api/careers'),
-                    fetch('/api/config/cycles'),
-                    fetch('/api/config/scholarships')
+                    fetch(window.API_BASE + '/api/careers'),
+                    fetch(window.API_BASE + '/api/config/cycles'),
+                    fetch(window.API_BASE + '/api/config/scholarships')
                 ]);
                 
                 const careers = await careersRes.json();
@@ -283,7 +283,7 @@ export default {
                 });
 
                 const qs = new URLSearchParams(cleanFilters).toString();
-                const response = await fetch('/api/students/report?' + qs);
+                const response = await fetch(window.API_BASE + '/api/students/report?' + qs);
                 const result = await response.json();
                 
                 if (result.status === 'success') {
@@ -344,7 +344,7 @@ export default {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+                    const response = await fetch(window.API_BASE + `/api/students/${id}`, { method: 'DELETE' });
                     const res = await response.json();
                     if (res.status === 'success') {
                         Swal.fire('¡Eliminado!', 'El estudiante ha sido eliminado.', 'success');
@@ -408,7 +408,7 @@ export default {
                 
                 const fullData = { ...student, ...updatedData };
                 
-                const response = await fetch(`/api/students/${student.id}`, {
+                const response = await fetch(window.API_BASE + `/api/students/${student.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(fullData)

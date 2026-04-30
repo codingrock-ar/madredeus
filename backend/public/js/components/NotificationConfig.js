@@ -84,7 +84,7 @@ export default {
         async fetchTemplates() {
             this.loading = true;
             try {
-                const response = await fetch('/api/config/notifications');
+                const response = await fetch(window.API_BASE + '/api/config/notifications');
                 const result = await response.json();
                 if (result.status === 'success') {
                     this.templates = result.data;
@@ -113,7 +113,7 @@ export default {
         async saveTemplate() {
             this.saving = true;
             try {
-                const response = await fetch(`/api/config/notifications/${this.selectedTemplate.id}`, {
+                const response = await fetch(window.API_BASE + `/api/config/notifications/${this.selectedTemplate.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.editData)

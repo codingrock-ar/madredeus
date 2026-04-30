@@ -791,7 +791,7 @@ export default {
                     let response;
                     if (prefill) {
                         // Si es un pago existente, lo actualizamos a 'Pagado'
-                        response = await fetch(`/api/payments/${prefill.id}/process`, {
+                        response = await fetch(window.API_BASE + `/api/payments/${prefill.id}/process`, {
                             method: 'POST',
                             body: JSON.stringify({
                                 paid_amount: formValues.amount,
@@ -804,7 +804,7 @@ export default {
                         });
                     } else {
                         // Si es un cobro nuevo/suelto
-                        response = await fetch('/api/payments', {
+                        response = await fetch(window.API_BASE + '/api/payments', {
                             method: 'POST',
                             body: JSON.stringify(formValues),
                             headers: { 'Content-Type': 'application/json' }
@@ -842,7 +842,7 @@ export default {
                 .reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
             try {
-                const response = await fetch('/api/reminders/payment', {
+                const response = await fetch(window.API_BASE + '/api/reminders/payment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ student_id: this.student.id, debt: totalDebt })
@@ -859,7 +859,7 @@ export default {
         },
         async fetchPaymentConfigs() {
             try {
-                const response = await fetch('/api/config/payments');
+                const response = await fetch(window.API_BASE + '/api/config/payments');
                 const result = await response.json();
                 if (result.status === 'success') {
                     result.data.forEach(c => {
@@ -916,7 +916,7 @@ export default {
                 }
 
                 const token = localStorage.getItem('token');
-                const response = await fetch(`/api/students/${this.student.id}/generate-payments`, {
+                const response = await fetch(window.API_BASE + `/api/students/${this.student.id}/generate-payments`, {
                     method: 'POST',
                     headers: { 
                         'Authorization': 'Bearer ' + token,
@@ -953,7 +953,7 @@ export default {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/api/payments/${id}`, { method: 'DELETE' });
+                    const response = await fetch(window.API_BASE + `/api/payments/${id}`, { method: 'DELETE' });
                     const res = await response.json();
                     if (res.status === 'success') {
                         Swal.fire('Eliminado', 'el pago ha sido eliminado.', 'success');
