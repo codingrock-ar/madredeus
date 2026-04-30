@@ -2,11 +2,6 @@
 Botón -> notificar faltante de Documentos(envía un correo al mail cargado del Alumno).
 ¿Se deben poder subir?
 
--Cobranzas/Pagos
-Revisar Historial de Pagos vs Planilla de Cobro
+Que pasa cuando se terminan de pagar los conceptos pendientes?
+Se podrá volver a matricular al alumno para el ciclo siguiente?
 
-- [x] Vista de alumno -> calificaciones
-Debe ser parecido a listado de alumnos, botón calificaciones
-
-- [x] Vista de alumno -> pagos
-Debe ser parecido a listado de alumnos, botón pagos

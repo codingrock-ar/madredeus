@@ -15,7 +15,7 @@ class PaymentRepositoryMySQL {
     public function getAll(array $filters = []) {
         if (!$this->db) return [];
 
-        $sql = "SELECT p.*, s.name as student_name, s.lastname as student_lastname 
+        $sql = "SELECT p.*, s.name as student_name, s.lastname as student_lastname, s.dni as student_dni
                 FROM payments p
                 JOIN students s ON p.student_id = s.id
                 WHERE 1=1";
@@ -28,16 +28,27 @@ class PaymentRepositoryMySQL {
         }
 
         if (!empty($filters['search'])) {
-            $sql .= " AND (s.name LIKE :search OR s.lastname LIKE :search OR s.dni LIKE :search)";
-            $params[':search'] = "%" . $filters['search'] . "%";
+            $searchTerm = $filters['search'];
+            $sql .= " AND (s.name LIKE :search OR s.lastname LIKE :search OR s.dni LIKE :search";
+            
+            // Si parece un DNI con formato (puntos/guiones), buscamos también la versión limpia
+            $cleanSearch = preg_replace('/[^0-9]/', '', $searchTerm);
+            if (!empty($cleanSearch) && $cleanSearch !== $searchTerm) {
+                $sql .= " OR s.dni LIKE :clean_search";
+                $params[':clean_search'] = "%" . $cleanSearch . "%";
+            }
+            $sql .= ")";
+            $params[':search'] = "%" . $searchTerm . "%";
         }
 
-        if (!empty($filters['start_date'])) {
+        // Si hay búsqueda, los filtros de fecha se vuelven opcionales o secundarios
+        // Para mejorar la UX, si el usuario busca por DNI, quiere ver el historial completo
+        if (!empty($filters['start_date']) && empty($filters['search'])) {
             $sql .= " AND p.payment_date >= :start_date";
             $params[':start_date'] = $filters['start_date'];
         }
 
-        if (!empty($filters['end_date'])) {
+        if (!empty($filters['end_date']) && empty($filters['search'])) {
             $sql .= " AND p.payment_date <= :end_date";
             $params[':end_date'] = $filters['end_date'] . " 23:59:59";
         }
@@ -48,12 +59,12 @@ class PaymentRepositoryMySQL {
         }
 
         if (!empty($filters['career'])) {
-            $sql .= " AND s.career = :career";
+            // Usamos la tabla de inscripciones para filtrar por carrera
+            $sql .= " AND EXISTS (SELECT 1 FROM student_career_inscriptions sci JOIN careers c ON sci.career_id = c.id WHERE sci.student_id = s.id AND c.title = :career)";
             $params[':career'] = $filters['career'];
         }
 
         if (!empty($filters['commission'])) {
-            // Buscamos alumnos que tengan AL MENOS UNA inscripción en esa comisión
             $sql .= " AND EXISTS (SELECT 1 FROM student_career_inscriptions sci WHERE sci.student_id = s.id AND sci.commission = :commission)";
             $params[':commission'] = $filters['commission'];
         }
@@ -174,56 +185,49 @@ class PaymentRepositoryMySQL {
         }
         
         if (!empty($filters['search'])) {
-            $where[] = "(s.name LIKE :search OR s.lastname LIKE :search OR s.dni LIKE :search)";
-            $params[':search'] = "%" . $filters['search'] . "%";
+            $searchTerm = $filters['search'];
+            $searchSql = "(s.name LIKE :search OR s.lastname LIKE :search OR s.dni LIKE :search";
+            
+            $cleanSearch = preg_replace('/[^0-9]/', '', $searchTerm);
+            if (!empty($cleanSearch) && $cleanSearch !== $searchTerm) {
+                $searchSql .= " OR s.dni LIKE :clean_search";
+                $params[':clean_search'] = "%" . $cleanSearch . "%";
+            }
+            $searchSql .= ")";
+            $where[] = $searchSql;
+            $params[':search'] = "%" . $searchTerm . "%";
         }
 
         $whereSql = implode(" AND ", $where);
 
         $sql = "SELECT 
-                    c.id as career_id,
-                    c.title as career_title,
                     s.id as student_id,
                     s.name as student_name,
                     s.lastname as student_lastname,
                     s.dni as student_dni,
-                    sci.commission,
-                    sci.shift,
-                    sci.academic_cycle,
-                    (SELECT SUM(p.amount) FROM payments p WHERE p.student_id = s.id) as total_paid,
-                    (SELECT COUNT(*) FROM payments p WHERE p.student_id = s.id AND p.concept LIKE 'Cuota%') as installments_paid
+                    GROUP_CONCAT(DISTINCT c.title SEPARATOR ', ') as careers_list,
+                    GROUP_CONCAT(DISTINCT sci.commission SEPARATOR ', ') as commissions_list,
+                    (SELECT SUM(p.amount) FROM payments p WHERE p.student_id = s.id AND p.status = 'Pagado') as total_paid,
+                    (SELECT COUNT(*) FROM payments p WHERE p.student_id = s.id AND (p.concept LIKE 'Cuota%' OR p.type = 'Cuota') AND p.status = 'Pagado') as installments_paid
                 FROM students s
-                JOIN student_career_inscriptions sci ON s.id = sci.student_id
-                JOIN careers c ON sci.career_id = c.id
+                LEFT JOIN student_career_inscriptions sci ON s.id = sci.student_id
+                LEFT JOIN careers c ON sci.career_id = c.id
                 WHERE $whereSql
-                ORDER BY c.title, s.lastname, s.name";
+                GROUP BY s.id
+                ORDER BY s.lastname, s.name";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Group by career
-        $grouped = [];
-        foreach ($results as $row) {
-            $careerId = $row['career_id'];
-            if (!isset($grouped[$careerId])) {
-                $grouped[$careerId] = [
-                    'id' => $careerId,
-                    'title' => $row['career_title'],
-                    'students' => []
-                ];
-            }
-            
-            // Basic debt calculation: 
-            // Assume 1 registration + X installments should be paid by now (April = 1 installment)
-            $currentMonth = (int)date('n');
-            $expectedInstallments = max(0, $currentMonth - 3); // April is 4th month, so 1 installment
+        $currentMonth = (int)date('n');
+        $expectedInstallments = max(0, $currentMonth - 3); 
+
+        foreach ($results as &$row) {
             $row['has_debt'] = ($row['installments_paid'] < $expectedInstallments);
-            
-            $grouped[$careerId]['students'][] = $row;
         }
 
-        return array_values($grouped);
+        return $results;
     }
 
     public function getLastExecutionDate() {
@@ -240,14 +244,29 @@ class PaymentRepositoryMySQL {
         return $stmt->execute([':student_id' => $studentId]);
     }
 
+    public function getConfigs() {
+        if (!$this->db) return [];
+        $stmt = $this->db->query("SELECT * FROM payment_configs");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function updateConfig($key, $value) {
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("UPDATE payment_configs SET config_value = :value WHERE config_key = :key");
+        return $stmt->execute([':key' => $key, ':value' => $value]);
+    }
+
     public function generatePaymentPlan($studentId, array $planData) {
         if (!$this->db) return false;
         
         try {
             $this->db->beginTransaction();
             
-            $sql = "INSERT INTO payments (student_id, amount, payment_date, due_date, type, payment_method, concept, status, details) 
-                    VALUES (:student_id, :amount, NULL, :due_date, :type, NULL, :concept, 'Pendiente', :details)";
+            // First, cancel any existing pending payments for this student to avoid duplicates
+            $this->cancelPendingByStudent($studentId);
+
+            $sql = "INSERT INTO payments (student_id, amount, base_amount, due_date, type, concept, status, details) 
+                    VALUES (:student_id, :amount, :base_amount, :due_date, :type, :concept, 'Pendiente', :details)";
             
             $stmt = $this->db->prepare($sql);
             
@@ -255,6 +274,7 @@ class PaymentRepositoryMySQL {
                 $stmt->execute([
                     ':student_id' => $studentId,
                     ':amount' => $payment['amount'],
+                    ':base_amount' => $payment['amount'],
                     ':due_date' => $payment['due_date'],
                     ':type' => $payment['type'],
                     ':concept' => $payment['concept'],
@@ -265,9 +285,35 @@ class PaymentRepositoryMySQL {
             $this->db->commit();
             return true;
         } catch (\Exception $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) $this->db->rollBack();
             error_log("Error generating payment plan: " . $e->getMessage());
             return false;
         }
+    }
+
+    public function processPayment($id, array $data) {
+        if (!$this->db) return false;
+
+        $sql = "UPDATE payments SET 
+                paid_amount = :paid_amount,
+                interest_amount = :interest_amount,
+                base_amount = :base_amount,
+                amount = :total_amount,
+                payment_date = CURRENT_TIMESTAMP,
+                payment_method = :method,
+                status = 'Pagado',
+                notes = :notes
+                WHERE id = :id";
+        
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':id' => $id,
+            ':paid_amount' => $data['paid_amount'],
+            ':interest_amount' => $data['interest_amount'] ?? 0,
+            ':base_amount' => $data['base_amount'],
+            ':total_amount' => $data['paid_amount'], // total amount is what was paid
+            ':method' => $data['payment_method'] ?? 'Efectivo',
+            ':notes' => $data['notes'] ?? null
+        ]);
     }
 }

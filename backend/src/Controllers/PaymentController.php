@@ -138,10 +138,49 @@ class PaymentController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
         }
 
-        // Ideally we would fetch student email and send the actual email here.
-        // For now we simulate success.
-        
         $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Notificación enviada con éxito']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    }
+
+    public function getConfigs(Request $request, Response $response, $args) {
+        $configs = $this->repository->getConfigs();
+        $response->getBody()->write(json_encode(['status' => 'success', 'data' => $configs]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function updateConfig(Request $request, Response $response, $args) {
+        $data = json_decode((string)$request->getBody(), true);
+        if (empty($data['config_key']) || !isset($data['config_value'])) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Faltan datos']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $success = $this->repository->updateConfig($data['config_key'], $data['config_value']);
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Configuración actualizada']));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al actualizar']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+
+    public function processPayment(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $data = json_decode((string)$request->getBody(), true);
+        
+        if (empty($data['paid_amount']) || empty($data['base_amount'])) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Faltan montos de pago']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $success = $this->repository->processPayment($id, $data);
+        if ($success) {
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Pago procesado correctamente']));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al procesar pago']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
 }

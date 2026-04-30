@@ -115,6 +115,12 @@ export default {
                     <router-link to="/config/scholarships" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-student"></i> Tipos de Beca
                     </router-link>
+                    <router-link to="/config/payments" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-currency-dollar-simple"></i> Aranceles e Intereses
+                    </router-link>
+                    <router-link to="/config/notifications" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-envelope-simple"></i> Notificaciones
+                    </router-link>
                 </div>
 
                 <!-- Finanzas -->

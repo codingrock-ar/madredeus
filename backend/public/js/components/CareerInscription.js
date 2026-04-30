@@ -76,9 +76,19 @@ export default {
                     </select>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold">Fecha Inscripción</label>
                     <input type="date" class="form-control" v-model="form.inscription_date" required>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Estado</label>
+                    <select class="form-select" v-model="form.status" required>
+                        <option value="Estadío 0">Estadío 0</option>
+                        <option value="En Curso">En Curso</option>
+                        <option value="Abandono">Abandono</option>
+                        <option value="Egresado">Egresado</option>
+                    </select>
                 </div>
 
                 <!-- ALERTA DOCUMENTACIÓN -->

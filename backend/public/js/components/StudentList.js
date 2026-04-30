@@ -175,10 +175,10 @@ export default {
                                     <router-link :to="'/student/form?id=' + student.id" class="btn btn-icon btn-sm btn-outline-primary" title="Editar">
                                         <i class="ph ph-pencil-simple"></i>
                                     </router-link>
-                                    <router-link :to="'/student/grades/' + student.id" class="btn btn-icon btn-sm btn-outline-success" title="Calificaciones">
+                                    <router-link :to="'/student/detail/' + student.id + '?tab=grades'" class="btn btn-icon btn-sm btn-outline-success" title="Calificaciones">
                                         <i class="ph ph-graduation-cap"></i>
                                     </router-link>
-                                    <router-link :to="'/student/collect/' + student.id" class="btn btn-icon btn-sm btn-outline-dark" title="Cobrar">
+                                    <router-link :to="'/student/detail/' + student.id + '?tab=payments&action=collect'" class="btn btn-icon btn-sm btn-outline-dark" title="Cobrar">
                                         <i class="ph ph-currency-dollar"></i>
                                     </router-link>
                                     <router-link :to="'/students/promotion?student_id=' + student.id" class="btn btn-icon btn-sm btn-outline-secondary" title="Promocionar">

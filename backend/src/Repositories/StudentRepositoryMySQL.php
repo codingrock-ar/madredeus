@@ -649,9 +649,12 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             WHERE name LIKE :term 
                OR lastname LIKE :term 
                OR dni LIKE :term 
+               OR dni LIKE :clean_term 
             LIMIT 10
         ");
         $stmt->bindParam(':term', $searchTerm);
+        $cleanSearch = preg_replace('/[^0-9]/', '', $term);
+        $stmt->bindValue(':clean_term', "%" . $cleanSearch . "%");
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }

@@ -179,52 +179,56 @@ export default {
                     </div>
                 </div>
 
-                <!-- Planilla por Carrera -->
+                <!-- Planilla Única -->
                 <div v-if="loadingPlanilla" class="text-center py-5">
                     <div class="spinner-border text-primary"></div>
                 </div>
                 <div v-else>
-                    <div v-for="career in planilla" :key="career.id" class="mb-5">
-                        <h5 class="fw-bold mb-3 border-bottom pb-2 text-primary">{{ career.title }}</h5>
-                        <div class="card border-0 shadow-sm">
-                            <div class="table-responsive">
-                                <table class="table table-sm align-middle mb-0">
-                                    <thead class="bg-light extra-small fw-bold">
-                                        <tr>
-                                            <th class="ps-3">Alumno</th>
-                                            <th class="text-center">Comisión</th>
-                                            <th class="text-end">Pagado</th>
-                                            <th class="text-center">Cuotas</th>
-                                            <th class="text-center">Estado</th>
-                                            <th class="pe-3 text-center"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="s in career.students" :key="s.student_id" class="small">
-                                            <td class="ps-3">
-                                                <div class="fw-bold">{{ s.student_lastname }}, {{ s.student_name }}</div>
-                                                <div class="extra-small text-muted">{{ s.student_dni }}</div>
-                                            </td>
-                                            <td class="text-center">{{ s.commission }}</td>
-                                            <td class="text-end fw-bold">$ {{ formatCurrency(s.total_paid) }}</td>
-                                            <td class="text-center">{{ s.installments_paid }} / 10</td>
-                                            <td class="text-center">
-                                                <span :class="s.has_debt ? 'badge bg-soft-danger text-danger' : 'badge bg-soft-success text-success'">
-                                                    {{ s.has_debt ? 'DEUDA' : 'AL DÍA' }}
-                                                </span>
-                                            </td>
-                                            <td class="pe-3 text-center">
-                                                <div class="d-flex gap-1 justify-content-center">
-                                                    <router-link :to="'/student/collect/' + s.student_id" class="btn btn-primary btn-xs py-1 px-2">Cobrar</router-link>
-                                                    <button v-if="s.has_debt" class="btn btn-soft-warning btn-xs py-1 px-2" @click="sendPaymentReminder(s)" title="Enviar Recordatorio de Pago">
-                                                        <i class="ph ph-bell"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light extra-small fw-bold">
+                                    <tr>
+                                        <th class="ps-3">Alumno</th>
+                                        <th>Carrera(s)</th>
+                                        <th class="text-center">Comisión</th>
+                                        <th class="text-end">Pagado</th>
+                                        <th class="text-center">Cuotas</th>
+                                        <th class="text-center">Estado</th>
+                                        <th class="pe-3 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="s in planilla" :key="s.student_id" class="small">
+                                        <td class="ps-3">
+                                            <div class="fw-bold">{{ s.student_lastname }}, {{ s.student_name }}</div>
+                                            <div class="extra-small text-muted">{{ s.student_dni }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="extra-small text-wrap" style="max-width: 200px;">{{ s.careers_list || '-' }}</div>
+                                        </td>
+                                        <td class="text-center small">{{ s.commissions_list || '-' }}</td>
+                                        <td class="text-end fw-bold">$ {{ formatCurrency(s.total_paid) }}</td>
+                                        <td class="text-center">{{ s.installments_paid }} / 10</td>
+                                        <td class="text-center">
+                                            <span :class="s.has_debt ? 'badge bg-soft-danger text-danger' : 'badge bg-soft-success text-success'">
+                                                {{ s.has_debt ? 'DEUDA' : 'AL DÍA' }}
+                                            </span>
+                                        </td>
+                                        <td class="pe-3 text-center">
+                                            <div class="d-flex gap-1 justify-content-center">
+                                                <button type="button" class="btn btn-primary btn-xs py-1 px-2" @click="showNewPaymentModal(s)">Cobrar</button>
+                                                <button v-if="s.has_debt" class="btn btn-soft-warning btn-xs py-1 px-2" @click="sendPaymentReminder(s)" title="Enviar Recordatorio de Pago">
+                                                    <i class="ph ph-bell"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="planilla.length === 0">
+                                        <td colspan="7" class="text-center py-4 text-muted small">No se encontraron alumnos con los filtros aplicados.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -365,35 +369,6 @@ export default {
             this.page = p;
             this.fetchPayments(false);
         },
-        async sendPaymentReminder(student) {
-            try {
-                const response = await fetch('/api/reminders/payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        student_id: student.student_id,
-                        debt: (student.expected_installments - student.installments_paid) * 5000 // Heuristic for now
-                    })
-                });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Recordatorio Enviado',
-                        text: `Se ha enviado un correo a ${student.student_name} avisando sobre la deuda.`,
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000
-                    });
-                } else {
-                    Swal.fire('Error', result.message, 'error');
-                }
-            } catch (err) {
-                console.error("Error sending reminder:", err);
-                Swal.fire('Error', 'No se pudo enviar el recordatorio.', 'error');
-            }
-        },
         resetFilters() {
             const today = new Date();
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -445,15 +420,20 @@ export default {
                 }
             }
         },
-        async showNewPaymentModal() {
+        async showNewPaymentModal(preSelectedStudent = null) {
             const { value: formValues } = await Swal.fire({
-                title: 'Registrar Nuevo Pago',
+                title: preSelectedStudent ? `Cobrar a: ${preSelectedStudent.student_lastname}, ${preSelectedStudent.student_name}` : 'Registrar Nuevo Pago',
                 html: `
                     <div class="text-start">
-                        <label class="form-label small fw-bold">Buscar Alumno (DNI/Apellido)</label>
-                        <input id="swal-student-search" class="form-control form-control-sm mb-2" placeholder="Buscar...">
-                        <select id="swal-student-id" class="form-select form-select-sm mb-3">
-                            <option value="">Seleccione un alumno...</option>
+                        ${!preSelectedStudent ? `
+                            <label class="form-label small fw-bold">Buscar Alumno (DNI/Apellido)</label>
+                            <input id="swal-student-search" class="form-control form-control-sm mb-2" placeholder="Buscar...">
+                        ` : ''}
+                        
+                        <select id="swal-student-id" class="form-select form-select-sm mb-3" ${preSelectedStudent ? 'style="display:none"' : ''}>
+                            <option value="${preSelectedStudent ? preSelectedStudent.student_id : ''}" selected>
+                                ${preSelectedStudent ? preSelectedStudent.student_lastname + ', ' + preSelectedStudent.student_name + ' (DNI: ' + preSelectedStudent.student_dni + ')' : 'Seleccione un alumno...'}
+                            </option>
                         </select>
                         
                         <div class="row g-2">
@@ -501,26 +481,28 @@ export default {
                     const searchInput = document.getElementById('swal-student-search');
                     const studentSelect = document.getElementById('swal-student-id');
                     
-                    searchInput.addEventListener('input', async (e) => {
-                        const search = e.target.value;
-                        if (search.length < 3) return;
-                        
-                        try {
-                            const response = await fetch(`/api/students/autocomplete?q=${search}`);
-                            const result = await response.json();
-                            if (result.status === 'success') {
-                                studentSelect.innerHTML = '<option value="">Seleccione un alumno...</option>';
-                                result.data.forEach(s => {
-                                    const option = document.createElement('option');
-                                    option.value = s.id;
-                                    option.text = `${s.lastname}, ${s.name} (DNI: ${s.dni})`;
-                                    studentSelect.appendChild(option);
-                                });
+                    if (searchInput) {
+                        searchInput.addEventListener('input', async (e) => {
+                            const search = e.target.value;
+                            if (search.length < 3) return;
+                            
+                            try {
+                                const response = await fetch(`/api/students/autocomplete?q=${search}`);
+                                const result = await response.json();
+                                if (result.status === 'success') {
+                                    studentSelect.innerHTML = '<option value="">Seleccione un alumno...</option>';
+                                    result.data.forEach(s => {
+                                        const option = document.createElement('option');
+                                        option.value = s.id;
+                                        option.text = `${s.lastname}, ${s.name} (DNI: ${s.dni})`;
+                                        studentSelect.appendChild(option);
+                                    });
+                                }
+                            } catch (err) {
+                                console.error(err);
                             }
-                        } catch (err) {
-                            console.error(err);
-                        }
-                    });
+                        });
+                    }
                 },
                 preConfirm: () => {
                     const student_id = document.getElementById('swal-student-id').value;
@@ -547,7 +529,11 @@ export default {
                     const res = await response.json();
                     if (res.status === 'success') {
                         Swal.fire('¡Éxito!', 'Pago registrado correctamente', 'success');
-                        this.fetchPayments();
+                        if (this.viewMode === 'planilla') {
+                            this.fetchPlanilla();
+                        } else {
+                            this.fetchPayments();
+                        }
                     } else {
                         Swal.fire('Error', res.message, 'error');
                     }

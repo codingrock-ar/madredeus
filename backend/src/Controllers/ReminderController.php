@@ -63,12 +63,14 @@ class ReminderController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
-        // Determine missing docs
+        // Determine missing docs based on DB columns
         $missing = [];
-        if (!$student['has_dni']) $missing[] = "DNI";
-        if (!$student['has_title']) $missing[] = "Título secundario";
-        if (!$student['has_photo']) $missing[] = "Fotos carnet";
-        if (!$student['has_aptitude']) $missing[] = "Aptitud física";
+        if (!$student['req_dni_photocopy']) $missing[] = "Fotocopia DNI";
+        if (!$student['req_degree_photocopy']) $missing[] = "Fotocopia Título";
+        if (!$student['req_two_photos']) $missing[] = "Dos fotos 4x4";
+        if (!$student['req_psychophysical']) $missing[] = "Apto Psicofísico";
+        if (!$student['req_student_book']) $missing[] = "Libreta Estudiantil";
+        if (!$student['req_vaccines']) $missing[] = "Certificado de Vacunas";
 
         if (empty($missing)) {
             $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Student has no missing documentation']));

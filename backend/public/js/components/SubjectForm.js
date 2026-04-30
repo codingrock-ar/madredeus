@@ -29,6 +29,19 @@ export default {
                             </select>
                         </div>
 
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Año <span class="text-danger" v-if="!isViewMode">*</span></label>
+                            <input type="number" class="form-control" v-model="subject.academic_year" :required="!isViewMode" :disabled="isViewMode" min="1" max="6">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Cuatrimestre <span class="text-danger" v-if="!isViewMode">*</span></label>
+                            <select class="form-select" v-model="subject.quarter" :required="!isViewMode" :disabled="isViewMode">
+                                <option :value="1">1º Cuatrimestre</option>
+                                <option :value="2">2º Cuatrimestre</option>
+                            </select>
+                        </div>
+
                         <div class="col-12 mt-4">
                             <label class="form-label text-muted small fw-bold">Programa (Archivo PDF/Doc)</label>
                             <div class="input-group">
@@ -61,7 +74,7 @@ export default {
     `,
     data() {
         return {
-            subject: { name: '', program: '', career_id: '' },
+            subject: { name: '', program: '', career_id: '', academic_year: 1, quarter: 1 },
             careers: [],
             loading: false,
             uploading: false,

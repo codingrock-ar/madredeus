@@ -21,6 +21,8 @@ export default {
                         <tr>
                             <th>ID</th>
                             <th>Nombre</th>
+                            <th>Carrera</th>
+                            <th>Año/Cuat.</th>
                             <th>Programa</th>
                             <th>Última Modificación</th>
                             <th class="text-end">Acciones</th>
@@ -30,6 +32,11 @@ export default {
                         <tr v-for="materia in paginatedSubjects" :key="materia.id">
                             <td>{{ materia.id }}</td>
                             <td class="text-primary fw-semibold hover-underline" style="cursor: pointer;" @click="$router.push('/subject/form?id=' + materia.id + '&view=1')">{{ materia.name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ materia.career_title || 'N/A' }}</span></td>
+                            <td>
+                                <span class="badge bg-primary-subtle text-primary">{{ materia.academic_year }}º Año</span>
+                                <span class="badge bg-info-subtle text-info">{{ materia.quarter }}º Cuat.</span>
+                            </td>
                             <td>
                                 <a :href="materia.program" target="_blank" v-if="materia.program && materia.program.length > 0">
                                     <i class="ph ph-file-doc fs-4 text-primary"></i>
@@ -39,6 +46,7 @@ export default {
                             <td class="text-muted small">{{ materia.last_modified }}</td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
+                                    <button class="btn btn-sm btn-outline-info" title="Ver" @click="$router.push('/subject/form?id=' + materia.id + '&view=1')"><i class="ph ph-eye"></i></button>
                                     <button class="btn btn-sm btn-outline-primary" title="Editar" @click="$router.push('/subject/form?id=' + materia.id)"><i class="ph ph-pencil-simple"></i></button>
                                     <button class="btn btn-sm btn-outline-danger" title="Eliminar" @click="deleteSubject(materia.id, materia.name)"><i class="ph ph-trash"></i></button>
                                 </div>

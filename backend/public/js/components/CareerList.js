@@ -34,6 +34,7 @@ export default {
                             <td class="text-muted small">{{ carrera.last_modified }}</td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
+                                    <button class="btn btn-sm btn-outline-info" title="Ver Plan" @click="$router.push('/career/form?id=' + carrera.id + '&view=1')"><i class="ph ph-eye"></i></button>
                                     <button class="btn btn-sm btn-outline-primary" title="Editar" @click="$router.push('/career/form?id=' + carrera.id)"><i class="ph ph-pencil-simple"></i></button>
                                     <button class="btn btn-sm btn-outline-danger" title="Eliminar" @click="deleteCareer(carrera.id, carrera.title)"><i class="ph ph-trash"></i></button>
                                 </div>
@@ -56,11 +57,6 @@ export default {
                     </li>
                 </ul>
             </nav>
-        </div>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
         </div>
     </div>
     `,

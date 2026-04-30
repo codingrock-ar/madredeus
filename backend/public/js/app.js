@@ -20,7 +20,9 @@ import StudentGrades from './components/StudentGrades.js';
 import StudentCollect from './components/StudentCollect.js';
 import CycleList from './components/CycleList.js';
 import ScholarshipList from './components/ScholarshipList.js';
+import PaymentConfig from './components/PaymentConfig.js';
 import PaymentList from './components/PaymentList.js';
+import NotificationConfig from './components/NotificationConfig.js';
 
 const { createApp } = Vue;
 const { createRouter, createWebHashHistory } = VueRouter;
@@ -53,6 +55,8 @@ const routes = [
             { path: 'student/collect/:id', component: StudentCollect, meta: { title: 'Cobrar' } },
             { path: 'config/cycles', component: CycleList, meta: { title: 'Ciclos Lectivos' } },
             { path: 'config/scholarships', component: ScholarshipList, meta: { title: 'Tipos de Beca' } },
+            { path: 'config/payments', component: PaymentConfig, meta: { title: 'Aranceles e Intereses' } },
+            { path: 'config/notifications', component: NotificationConfig, meta: { title: 'Plantillas de Correo' } },
             { path: 'payments', component: PaymentList, meta: { title: 'Gestión de Pagos' } }
         ]
     }

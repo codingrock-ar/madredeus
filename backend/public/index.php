@@ -14,6 +14,9 @@ if (!empty($basePath)) {
     $app->setBasePath($basePath);
 }
 
+// Middleware para parsear el cuerpo de las peticiones (JSON, form-data, etc)
+$app->addBodyParsingMiddleware();
+
 // Middleware de enrutamiento
 $app->addRoutingMiddleware();
 
@@ -97,6 +100,12 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->put('/config/scholarships/{id}', \App\Controllers\ScholarshipController::class . ':update');
     $group->patch('/config/scholarships/{id}/status', \App\Controllers\ScholarshipController::class . ':toggleStatus');
     $group->delete('/config/scholarships/{id}', \App\Controllers\ScholarshipController::class . ':delete');
+
+    $group->get('/config/payments', \App\Controllers\PaymentController::class . ':getConfigs');
+    $group->post('/config/payments', \App\Controllers\PaymentController::class . ':updateConfig');
+    
+    $group->get('/config/notifications', \App\Controllers\NotificationController::class . ':getTemplates');
+    $group->put('/config/notifications/{id}', \App\Controllers\NotificationController::class . ':updateTemplate');
     
     // Promoción de alumnos
     $group->post('/promotion', \App\Controllers\PromotionController::class . ':processPromotion');
@@ -109,6 +118,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->post('/payments', \App\Controllers\PaymentController::class . ':create');
     $group->put('/payments/{id}', \App\Controllers\PaymentController::class . ':update');
     $group->post('/payments/{id}/notify-late', \App\Controllers\PaymentController::class . ':notifyLate');
+    $group->post('/payments/{id}/process', \App\Controllers\PaymentController::class . ':processPayment');
     $group->post('/reminders/payment', \App\Controllers\ReminderController::class . ':payReminder');
     $group->post('/reminders/documentation', \App\Controllers\ReminderController::class . ':docReminder');
     $group->delete('/payments/{id}', \App\Controllers\PaymentController::class . ':delete');

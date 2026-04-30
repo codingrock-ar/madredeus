@@ -197,6 +197,7 @@ export default {
                                         <div class="col-md-3">
                                             <label class="form-label small">Estado</label>
                                             <select class="form-select form-select-sm" v-model="ins.status">
+                                                <option value="Estadío 0">Estadío 0</option>
                                                 <option value="En Curso">En Curso</option>
                                                 <option value="Abandono">Abandono</option>
                                                 <option value="Egresado">Egresado</option>
@@ -319,9 +320,14 @@ export default {
                         <div v-show="tab === 'payments' || isPrinting" class="fade-in">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="fw-bold mb-0">Gestión de Pagos</h6>
-                                <button type="button" class="btn btn-primary btn-sm" @click="generatePlanModal = true" :disabled="!student.id">
-                                    <i class="ph ph-plus me-1"></i>Generar Plan de Pagos
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-soft-primary btn-sm" @click="generatePlanModal = true" :disabled="!student.id">
+                                        <i class="ph ph-graduation-cap me-1"></i>Matricular en Carrera
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm" @click="showNewPaymentModal()">
+                                        <i class="ph ph-plus me-1"></i>Registrar Pago
+                                    </button>
+                                </div>
                             </div>
                             
                             <div v-if="student.payments && student.payments.length > 0">
@@ -354,16 +360,35 @@ export default {
                                                         <span v-if="p.status === 'Pendiente'" class="d-block extra-small">{{ getDueDaysText(p.due_date) }}</span>
                                                     </span>
                                                 </td>
-                                                <td class="fw-bold">$ {{ formatCurrency(p.amount) }}</td>
-                                                <td>
-                                                    <span class="badge rounded-pill" :class="p.status === 'Pagado' ? 'bg-success' : (p.status === 'Anulado' ? 'bg-secondary' : (isLate(p.due_date) ? 'bg-danger' : 'bg-warning text-dark'))">
-                                                        {{ p.status }}
-                                                    </span>
+                                                <td class="fw-bold">
+                                                    <div v-if="p.status === 'Pagado'">
+                                                        $ {{ formatCurrency(p.paid_amount || p.amount) }}
+                                                        <div v-if="p.interest_amount > 0" class="extra-small text-danger">+ $ {{ formatCurrency(p.interest_amount) }} interés</div>
+                                                    </div>
+                                                    <div v-else>
+                                                        $ {{ formatCurrency(p.amount, p) }}
+                                                        <div v-if="p.status === 'Pendiente' && isLate(p.due_date)" class="extra-small text-danger fw-bold mt-1">
+                                                            <i class="ph ph-warning-circle"></i> Incluye recargo
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    <button v-if="p.status === 'Pendiente' && isLate(p.due_date)" type="button" class="btn btn-sm btn-outline-danger py-0" title="Notificar Atraso" @click="notifyLatePayment(p.id)">
-                                                        <i class="ph ph-envelope-simple"></i> Notificar
-                                                    </button>
+                                                    <span class="badge rounded-pill" :class="p.status === 'Pagado' ? 'bg-success' : (p.status === 'Anulado' ? 'bg-secondary' : (isLate(p.due_date) ? 'bg-danger' : 'bg-warning text-dark'))">
+                                                        {{ p.status === 'Pendiente' && isLate(p.due_date) ? 'Pendiente Vencido' : p.status }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="d-flex justify-content-end gap-1">
+                                                        <button v-if="p.status === 'Pendiente'" type="button" class="btn btn-icon btn-sm btn-soft-primary" title="Cobrar" @click="openPaymentModal(p)">
+                                                            <i class="ph ph-currency-dollar"></i>
+                                                        </button>
+                                                        <button v-if="p.status === 'Pendiente' && isLate(p.due_date)" type="button" class="btn btn-icon btn-sm btn-soft-warning" title="Notificar Atraso" @click="notifyLatePayment(p.id)">
+                                                            <i class="ph ph-bell"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-icon btn-sm btn-soft-danger" title="Eliminar" @click="deletePayment(p.id)">
+                                                            <i class="ph ph-trash"></i>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -372,98 +397,72 @@ export default {
                             </div>
                             <div v-else class="text-center py-4 bg-light rounded text-muted small">
                                 <i class="ph ph-wallet fs-3 d-block mb-2"></i>
-                                El alumno no tiene pagos registrados. Utiliza el botón "Generar Plan de Pagos" para crearlos.
+                                El alumno no tiene pagos registrados. Utiliza el botón "Matricular en Carrera" para crearlos.
                             </div>
                             
                             <!-- Generar Pagos Modal -->
-                            <div v-if="generatePlanModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title fw-bold"><i class="ph ph-calendar-plus me-2"></i>Generar Plan de Pagos</h5>
-                                            <button type="button" class="btn-close" @click="generatePlanModal = false"></button>
+                            <!-- MODAL: GENERAR PLAN -->
+                            <div v-if="generatePlanModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+                                <div class="modal-dialog modal-md modal-dialog-centered">
+                                    <div class="modal-content shadow-lg border-0">
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title fw-bold"><i class="ph ph-calendar-plus me-2"></i>Matricular en Carrera</h5>
+                                            <button type="button" class="btn-close btn-close-white" @click="generatePlanModal = false"></button>
                                         </div>
-                                        <div class="modal-body">
-                                            <div class="row g-4">
-                                                <!-- Matrícula -->
+                                        <div class="modal-body p-4">
+                                            <div class="alert alert-info small mb-4">
+                                                <i class="ph ph-info me-2"></i>Se generará un plan de 10 cuotas mensuales según el ciclo elegido.
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <div class="col-12">
+                                                    <label class="form-label small fw-bold">Ciclo de Inicio</label>
+                                                    <select class="form-select" v-model="planConfig.start_cycle">
+                                                        <option value="Marzo">Marzo (Clásico: Marzo a Diciembre)</option>
+                                                        <option value="Agosto">Agosto (Agosto a Julio del año siguiente)</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="col-12"><hr class="my-2"></div>
+
                                                 <div class="col-12">
                                                     <div class="form-check form-switch mb-2">
                                                         <input class="form-check-input" type="checkbox" id="genMatricula" v-model="planConfig.include_matricula">
-                                                        <label class="form-check-label fw-bold" for="genMatricula">Generar Matrícula</label>
+                                                        <label class="form-check-label fw-bold" for="genMatricula">Incluir Matrícula</label>
                                                     </div>
                                                     <div v-if="planConfig.include_matricula" class="row g-2 ps-4">
                                                         <div class="col-md-6">
                                                             <label class="form-label small">Monto Matrícula</label>
-                                                            <input type="number" class="form-control form-control-sm" v-model.number="planConfig.matricula_amount">
+                                                            <input type="number" class="form-control" v-model.number="planConfig.matricula_amount">
                                                         </div>
                                                         <div class="col-md-6">
-                                                            <label class="form-label small">Fecha Vencimiento</label>
-                                                            <input type="date" class="form-control form-control-sm" v-model="planConfig.matricula_due_date">
+                                                            <label class="form-label small">Vencimiento</label>
+                                                            <input type="date" class="form-control" v-model="planConfig.matricula_due_date">
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
-                                                <div class="col-12"><hr class="my-0"></div>
-                                                
-                                                <!-- Cuatrimestre 1 -->
+
                                                 <div class="col-12">
-                                                    <div class="form-check form-switch mb-2">
-                                                        <input class="form-check-input" type="checkbox" id="genQ1" v-model="planConfig.include_q1">
-                                                        <label class="form-check-label fw-bold" for="genQ1">Generar Cuotas Cuatrimestre 1</label>
+                                                    <label class="form-label small fw-bold">Valor de la Cuota</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">$</span>
+                                                        <input type="number" class="form-control" v-model.number="planConfig.quota_amount">
                                                     </div>
-                                                    <div v-if="planConfig.include_q1" class="row g-2 ps-4">
-                                                        <div class="col-md-4">
-                                                            <label class="form-label small">Cant. Cuotas</label>
-                                                            <input type="number" class="form-control form-control-sm" v-model.number="planConfig.q1_installments" min="1">
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <label class="form-label small">Monto por Cuota</label>
-                                                            <input type="number" class="form-control form-control-sm" v-model.number="planConfig.q1_amount">
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <label class="form-label small">Primer Vencimiento</label>
-                                                            <input type="date" class="form-control form-control-sm" v-model="planConfig.q1_first_due_date">
-                                                            <div class="form-text extra-small">Las demás se sumarán mes a mes</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="col-12"><hr class="my-0"></div>
-                                                
-                                                <!-- Cuatrimestre 2 -->
-                                                <div class="col-12">
-                                                    <div class="form-check form-switch mb-2">
-                                                        <input class="form-check-input" type="checkbox" id="genQ2" v-model="planConfig.include_q2">
-                                                        <label class="form-check-label fw-bold" for="genQ2">Generar Cuotas Cuatrimestre 2</label>
-                                                    </div>
-                                                    <div v-if="planConfig.include_q2" class="row g-2 ps-4">
-                                                        <div class="col-md-4">
-                                                            <label class="form-label small">Cant. Cuotas</label>
-                                                            <input type="number" class="form-control form-control-sm" v-model.number="planConfig.q2_installments" min="1">
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <label class="form-label small">Monto por Cuota</label>
-                                                            <input type="number" class="form-control form-control-sm" v-model.number="planConfig.q2_amount">
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <label class="form-label small">Primer Vencimiento</label>
-                                                            <input type="date" class="form-control form-control-sm" v-model="planConfig.q2_first_due_date">
-                                                            <div class="form-text extra-small">Las demás se sumarán mes a mes</div>
-                                                        </div>
-                                                    </div>
+                                                    <div class="form-text extra-small">Se aplicará a las 10 cuotas.</div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="modal-footer bg-light">
-                                            <button type="button" class="btn btn-secondary" @click="generatePlanModal = false">Cancelar</button>
-                                            <button type="button" class="btn btn-primary" @click="executeGeneratePlan" :disabled="generatingPlan">
+                                        <div class="modal-footer border-0 p-3 bg-light rounded-bottom">
+                                            <button type="button" class="btn btn-light" @click="generatePlanModal = false">Cancelar</button>
+                                            <button type="button" class="btn btn-primary px-4" @click="executeGeneratePlan" :disabled="generatingPlan">
                                                 <span v-if="generatingPlan" class="spinner-border spinner-border-sm me-2"></span>
-                                                Confirmar Generación
+                                                Generar Plan Completo
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
 
                         <!-- TAB: DOCS & OTHERS -->
@@ -605,18 +604,29 @@ export default {
             photoPreview: null,
             generatePlanModal: false,
             generatingPlan: false,
+            paymentConfigs: {
+                quota_base_amount: 40000,
+                matricula_base_amount: 50000,
+                interest_after_10: 10,
+                interest_after_20: 20
+            },
+            paymentModal: {
+                show: false,
+                loading: false,
+                payment: null,
+                paid_amount: 0,
+                interest_amount: 0,
+                base_amount: 0,
+                method: 'Efectivo',
+                notes: ''
+            },
             planConfig: {
                 include_matricula: true,
                 matricula_amount: 50000,
                 matricula_due_date: new Date().toISOString().split('T')[0],
-                include_q1: true,
-                q1_installments: 5,
-                q1_amount: 40000,
-                q1_first_due_date: '',
-                include_q2: false,
-                q2_installments: 5,
-                q2_amount: 40000,
-                q2_first_due_date: ''
+                start_cycle: 'Marzo',
+                quota_amount: 40000,
+                first_quota_due_date: ''
             }
         }
     },
@@ -840,11 +850,18 @@ export default {
             const date = new Date(dateStr);
             return date.toLocaleDateString('es-AR');
         },
-        formatCurrency(amount) {
-            return parseFloat(amount).toLocaleString('es-AR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
+        formatCurrency(amount, p = null) {
+            let total = parseFloat(amount || 0);
+            if (p && p.status === 'Pendiente' && this.isLate(p.due_date)) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const due = new Date(p.due_date + 'T00:00:00');
+                const isSameMonth = (today.getFullYear() === due.getFullYear() && today.getMonth() === due.getMonth());
+                const day = today.getDate();
+                if (!isSameMonth || day > 20) total *= 1.20;
+                else if (day > 10) total *= 1.10;
+            }
+            return total.toLocaleString('es-AR', { minimumFractionDigits: 2 });
         },
         formatDetails(details) {
             try {
@@ -856,7 +873,10 @@ export default {
         },
         isLate(dueDate) {
             if (!dueDate) return false;
-            return new Date(dueDate) < new Date();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const due = new Date(dueDate + 'T00:00:00');
+            return due < today;
         },
         getDueDateClass(dueDate, status) {
             if (status === 'Pagado' || status === 'Anulado') return 'text-muted';
@@ -866,13 +886,20 @@ export default {
         getDueDaysText(dueDate) {
             if (!dueDate) return '';
             const today = new Date();
-            today.setHours(0,0,0,0);
-            const due = new Date(dueDate);
+            today.setHours(0, 0, 0, 0);
+            const due = new Date(dueDate + 'T00:00:00');
             const diffTime = due - today;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
             
-            if (diffDays < 0) return `Atrasado por ${Math.abs(diffDays)} días`;
-            if (diffDays === 0) return `Vence hoy`;
+            if (diffDays < 0) {
+                const dayOfMonth = today.getDate();
+                if (dayOfMonth <= 10) return 'Vencido (Período de gracia)';
+                if (dayOfMonth <= 20) return 'Vencido (1er Vencimiento)';
+                return 'Vencido (2do Vencimiento)';
+            }
+            if (diffDays === 0) return 'Vence hoy';
+            if (diffDays === 1) return 'Vence mañana';
+            if (diffDays <= 7) return 'Vence esta semana';
             return `Vence en ${diffDays} días`;
         },
         addMonthsToDate(dateStr, months) {
@@ -880,12 +907,24 @@ export default {
             d.setMonth(d.getMonth() + months);
             return d.toISOString().split('T')[0];
         },
+        async fetchPaymentConfigs() {
+            try {
+                const response = await fetch(window.API_BASE + '/api/config/payments');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    result.data.forEach(c => {
+                        if (this.paymentConfigs.hasOwnProperty(c.config_key)) {
+                            this.paymentConfigs[c.config_key] = parseFloat(c.config_value);
+                        }
+                    });
+                    // Update plan defaults
+                    this.planConfig.quota_amount = this.paymentConfigs.quota_base_amount;
+                    this.planConfig.matricula_amount = this.paymentConfigs.matricula_base_amount;
+                }
+            } catch (e) { console.error(e); }
+        },
         async executeGeneratePlan() {
-            if (!this.planConfig.include_matricula && !this.planConfig.include_q1 && !this.planConfig.include_q2) {
-                alert("Debes seleccionar al menos una opción para generar.");
-                return;
-            }
-            if (!confirm("¿Generar este plan de pagos?")) return;
+            if (!confirm("¿Matricular al alumno en la carrera? Se anularán pagos pendientes previos de este ciclo y se generarán la matrícula y 10 cuotas mensuales.")) return;
             
             this.generatingPlan = true;
             let planData = [];
@@ -900,32 +939,28 @@ export default {
                 });
             }
             
-            if (this.planConfig.include_q1) {
-                let currentDue = this.planConfig.q1_first_due_date || new Date().toISOString().split('T')[0];
-                for (let i = 1; i <= this.planConfig.q1_installments; i++) {
-                    planData.push({
-                        amount: this.planConfig.q1_amount,
-                        due_date: currentDue,
-                        type: 'Cuota',
-                        concept: 'Cuota ' + i + ' - Cuatrimestre 1',
-                        details: ['Mensualidad']
-                    });
-                    currentDue = this.addMonthsToDate(currentDue, 1);
+            const startYear = new Date().getFullYear();
+            let currentMonth = this.planConfig.start_cycle === 'Marzo' ? 3 : 8;
+            let currentYear = startYear;
+
+            for (let i = 1; i <= 10; i++) {
+                if (currentMonth > 12) {
+                    currentMonth = 1;
+                    currentYear++;
                 }
-            }
-            
-            if (this.planConfig.include_q2) {
-                let currentDue = this.planConfig.q2_first_due_date || new Date().toISOString().split('T')[0];
-                for (let i = 1; i <= this.planConfig.q2_installments; i++) {
-                    planData.push({
-                        amount: this.planConfig.q2_amount,
-                        due_date: currentDue,
-                        type: 'Cuota',
-                        concept: 'Cuota ' + i + ' - Cuatrimestre 2',
-                        details: ['Mensualidad']
-                    });
-                    currentDue = this.addMonthsToDate(currentDue, 1);
-                }
+                if (currentMonth === 1 || currentMonth === 2) currentMonth = 3;
+                
+                const dueDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-10`;
+                
+                planData.push({
+                    amount: this.planConfig.quota_amount,
+                    due_date: dueDate,
+                    type: 'Cuota',
+                    concept: `Cuota ${i} (${currentMonth}/${currentYear})`,
+                    details: ['Mensualidad']
+                });
+                
+                currentMonth++;
             }
 
             try {
@@ -938,12 +973,12 @@ export default {
                 
                 const result = await response.json();
                 if (response.ok && result.status === 'success') {
-                    this.successMessage = "Plan de pagos generado exitosamente.";
+                    this.successMessage = "Alumno matriculado exitosamente.";
                     this.generatePlanModal = false;
                     await this.fetchStudent(this.student.id);
                     setTimeout(() => { this.successMessage = null; }, 3000);
                 } else {
-                    this.error = result.message || "Error al generar el plan de pagos.";
+                    this.error = result.message || "Error al matricular el alumno.";
                 }
             } catch (e) {
                 console.error(e);
@@ -951,6 +986,144 @@ export default {
             } finally {
                 this.generatingPlan = false;
             }
+        },
+        async openPaymentModal(payment = null) {
+            let amountVal = '';
+            let conceptVal = '';
+            let baseAmount = 0;
+            
+            if (payment) {
+                baseAmount = parseFloat(payment.base_amount || payment.amount);
+                let total = baseAmount;
+                
+                // Cálculo de interés para cuotas
+                if (payment.type === 'Cuota' && this.isLate(payment.due_date)) {
+                    const today = new Date();
+                    const due = new Date(payment.due_date);
+                    const isSameMonth = (today.getFullYear() === due.getFullYear() && today.getMonth() === due.getMonth());
+                    const dayOfMonth = today.getDate();
+                    
+                    let interestRate = 0;
+                    if (!isSameMonth || dayOfMonth > 20) {
+                        interestRate = (this.paymentConfigs.interest_after_20 || 20) / 100;
+                    } else if (dayOfMonth > 10) {
+                        interestRate = (this.paymentConfigs.interest_after_10 || 10) / 100;
+                    }
+                    total += Math.round(baseAmount * interestRate);
+                }
+                amountVal = total.toFixed(2);
+                conceptVal = payment.concept;
+            }
+
+            const { value: formValues } = await Swal.fire({
+                title: payment ? `Cobrar Concepto: ${payment.concept}` : `Registrar Pago`,
+                html: `
+                    <div class="text-start">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Fecha</label>
+                                <input id="swal-date" type="date" class="form-control form-control-sm mb-3" value="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Monto</label>
+                                <input id="swal-amount" type="number" step="0.01" class="form-control form-control-sm mb-3" value="${amountVal}" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <label class="form-label small fw-bold">Concepto</label>
+                        <select id="swal-concept" class="form-select form-select-sm mb-3">
+                            <option value="">Seleccione concepto...</option>
+                            ${conceptVal && !['Matrícula', 'Matrícula Anual', 'Cuota 1', 'Cuota 2', 'Cuota 3', 'Cuota 4', 'Cuota 5', 'Cuota 6', 'Cuota 7', 'Cuota 8', 'Cuota 9', 'Cuota 10', 'Intereses', 'Otros'].includes(conceptVal) ? `
+                                <option value="${conceptVal}" selected>${conceptVal}</option>
+                            ` : ''}
+                            <option value="Matrícula" ${conceptVal === 'Matrícula' ? 'selected' : ''}>Matrícula</option>
+                            <option value="Matrícula Anual" ${conceptVal === 'Matrícula Anual' ? 'selected' : ''}>Matrícula Anual</option>
+                            <option value="Cuota 1" ${conceptVal === 'Cuota 1' ? 'selected' : ''}>Cuota 1</option>
+                            <option value="Cuota 2" ${conceptVal === 'Cuota 2' ? 'selected' : ''}>Cuota 2</option>
+                            <option value="Cuota 3" ${conceptVal === 'Cuota 3' ? 'selected' : ''}>Cuota 3</option>
+                            <option value="Cuota 4" ${conceptVal === 'Cuota 4' ? 'selected' : ''}>Cuota 4</option>
+                            <option value="Cuota 5" ${conceptVal === 'Cuota 5' ? 'selected' : ''}>Cuota 5</option>
+                            <option value="Cuota 6" ${conceptVal === 'Cuota 6' ? 'selected' : ''}>Cuota 6</option>
+                            <option value="Cuota 7" ${conceptVal === 'Cuota 7' ? 'selected' : ''}>Cuota 7</option>
+                            <option value="Cuota 8" ${conceptVal === 'Cuota 8' ? 'selected' : ''}>Cuota 8</option>
+                            <option value="Cuota 9" ${conceptVal === 'Cuota 9' ? 'selected' : ''}>Cuota 9</option>
+                            <option value="Cuota 10" ${conceptVal === 'Cuota 10' ? 'selected' : ''}>Cuota 10</option>
+                            <option value="Intereses" ${conceptVal === 'Intereses' ? 'selected' : ''}>Intereses</option>
+                            <option value="Otros" ${conceptVal === 'Otros' ? 'selected' : ''}>Otros</option>
+                        </select>
+
+                        <label class="form-label small fw-bold">Método</label>
+                        <select id="swal-method" class="form-select form-select-sm mb-3">
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="Depósito">Depósito</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Registrar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const amount = document.getElementById('swal-amount').value;
+                    const concept = document.getElementById('swal-concept').value;
+                    const payment_date = document.getElementById('swal-date').value;
+                    const payment_method = document.getElementById('swal-method').value;
+
+                    if (!amount || !concept) {
+                        Swal.showValidationMessage('Por favor complete los campos obligatorios');
+                        return false;
+                    }
+                    return { student_id: this.student.id, amount, concept, payment_date, payment_method };
+                }
+            });
+
+            if (formValues) {
+                try {
+                    let response;
+                    const token = localStorage.getItem('token');
+                    if (payment) {
+                        response = await fetch(window.API_BASE + `/api/payments/${payment.id}/process`, {
+                            method: 'POST',
+                            headers: { 
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json' 
+                            },
+                            body: JSON.stringify({
+                                paid_amount: formValues.amount,
+                                base_amount: baseAmount,
+                                interest_amount: parseFloat(formValues.amount) - baseAmount,
+                                payment_method: formValues.payment_method,
+                                notes: `Cobro desde edición de alumno`
+                            })
+                        });
+                    } else {
+                        response = await fetch(window.API_BASE + '/api/payments', {
+                            method: 'POST',
+                            headers: { 
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json' 
+                            },
+                            body: JSON.stringify(formValues)
+                        });
+                    }
+                    
+                    const res = await response.json();
+                    if (res.status === 'success') {
+                        Swal.fire('¡Éxito!', 'Pago registrado correctamente', 'success');
+                        await this.fetchStudent(this.student.id);
+                    } else {
+                        Swal.fire('Error', res.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'No se pudo registrar el pago.', 'error');
+                }
+            }
+        },
+        showNewPaymentModal() {
+            this.openPaymentModal(null);
         },
         async notifyLatePayment(paymentId) {
             if (!confirm("¿Enviar notificación de atraso al correo del alumno?")) return;
@@ -969,11 +1142,39 @@ export default {
             } catch (e) {
                 alert("Error de conexión al enviar la notificación.");
             }
+        },
+        async deletePayment(id) {
+            const result = await Swal.fire({
+                title: '¿Estás seguro?',
+                text: "Esta acción no se puede deshacer.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/api/payments/${id}`, { method: 'DELETE' });
+                    const res = await response.json();
+                    if (res.status === 'success') {
+                        Swal.fire('Eliminado', 'el pago ha sido eliminado.', 'success');
+                        await this.fetchStudent(this.student.id);
+                    } else {
+                        Swal.fire('Error', res.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'No se pudo eliminar el pago.', 'error');
+                }
+            }
         }
     },
     async mounted() {
         await this.fetchMetadata();
         await this.fetchCareers();
+        await this.fetchPaymentConfigs();
         
         const id = this.$route.query.id;
         if(id) {
