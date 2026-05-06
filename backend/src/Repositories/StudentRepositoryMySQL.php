@@ -96,6 +96,16 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             }
         }
 
+        if (!empty($params['gender'])) {
+            $where[] = "s.gender = :gender";
+            $sqlParams[':gender'] = $params['gender'];
+        }
+
+        if (!empty($params['sinigep_status'])) {
+            $where[] = "s.sinigep_status = :sinigep_status";
+            $sqlParams[':sinigep_status'] = $params['sinigep_status'];
+        }
+
         // Filtros de Inscripciones (Carrera, Comisión, Turno, Estado)
         // Se consolidan en un único EXISTS para que los filtros apliquen sobre la MISMA inscripción
         $insFilters = [];
@@ -212,14 +222,18 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         institution, book, folio, academic_cycle, scholarship_id, academic_year, address_street, address_number, address_type, address_province,
                         address_locality, address_zip_code, phone_landline, phone_mobile, req_dni_photocopy, req_degree_photocopy,
                         req_degree_photocopy_obs, req_two_photos, req_psychophysical, req_psychophysical_obs, req_vaccines,
-                        req_vaccines_obs, req_student_book, req_final_degree, req_final_degree_obs, found_institution, notes
+                        req_vaccines_obs, req_student_book, req_final_degree, req_final_degree_obs, found_institution, notes,
+                        gender, sinigep_status,
+                        file_dni, file_degree, file_psychophysical, file_vaccines, file_student_book, file_final_degree
                     ) VALUES (
                         :dni, :name, :lastname, :email, :birthdate, :nationality, :phone, :address, :city,
                         :photo, :birth_place, :document_type, :civil_status, :max_education_level, :education_finished, :degree_obtained,
                         :institution, :book, :folio, :academic_cycle, :scholarship_id, :academic_year, :address_street, :address_number, :address_type, :address_province,
                         :address_locality, :address_zip_code, :phone_landline, :phone_mobile, :req_dni_photocopy, :req_degree_photocopy,
                         :req_degree_photocopy_obs, :req_two_photos, :req_psychophysical, :req_psychophysical_obs, :req_vaccines,
-                        :req_vaccines_obs, :req_student_book, :req_final_degree, :req_final_degree_obs, :found_institution, :notes
+                        :req_vaccines_obs, :req_student_book, :req_final_degree, :req_final_degree_obs, :found_institution, :notes,
+                        :gender, :sinigep_status,
+                        :file_dni, :file_degree, :file_psychophysical, :file_vaccines, :file_student_book, :file_final_degree
                     )";
             
             $stmt = $this->db->prepare($sql);
@@ -328,7 +342,10 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         req_psychophysical_obs = :req_psychophysical_obs, req_vaccines = :req_vaccines,
                         req_vaccines_obs = :req_vaccines_obs, req_student_book = :req_student_book,
                         req_final_degree = :req_final_degree, req_final_degree_obs = :req_final_degree_obs,
-                        found_institution = :found_institution, notes = :notes
+                        found_institution = :found_institution, notes = :notes,
+                        gender = :gender, sinigep_status = :sinigep_status,
+                        file_dni = :file_dni, file_degree = :file_degree, file_psychophysical = :file_psychophysical,
+                        file_vaccines = :file_vaccines, file_student_book = :file_student_book, file_final_degree = :file_final_degree
                     WHERE id = :id";
                     
             $stmt = $this->db->prepare($sql);
@@ -502,6 +519,14 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $where[] = "s.scholarship_id = :scholarship_id";
             $sqlParams[':scholarship_id'] = $filters['scholarship_id'];
         }
+        if (!empty($filters['gender'])) {
+            $where[] = "s.gender = :gender";
+            $sqlParams[':gender'] = $filters['gender'];
+        }
+        if (!empty($filters['sinigep_status'])) {
+            $where[] = "s.sinigep_status = :sinigep_status";
+            $sqlParams[':sinigep_status'] = $filters['sinigep_status'];
+        }
 
         // Inscription filters (exists subquery for multi-career)
         $insFilters = [];
@@ -637,7 +662,15 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             ':req_final_degree' => !empty($data['req_final_degree']) ? 1 : 0,
             ':req_final_degree_obs' => $data['req_final_degree_obs'] ?? null,
             ':found_institution' => isset($data['found_institution']) ? json_encode($data['found_institution']) : null,
-            ':notes' => $data['notes'] ?? null
+            ':notes' => $data['notes'] ?? null,
+            ':gender' => $data['gender'] ?? 'No especifica',
+            ':sinigep_status' => $data['sinigep_status'] ?? 'Pendiente',
+            ':file_dni' => $data['file_dni'] ?? null,
+            ':file_degree' => $data['file_degree'] ?? null,
+            ':file_psychophysical' => $data['file_psychophysical'] ?? null,
+            ':file_vaccines' => $data['file_vaccines'] ?? null,
+            ':file_student_book' => $data['file_student_book'] ?? null,
+            ':file_final_degree' => $data['file_final_degree'] ?? null
         ];
     }
 

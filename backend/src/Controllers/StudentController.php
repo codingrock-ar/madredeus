@@ -30,6 +30,8 @@ class StudentController {
             'commission' => $queryParams['commission'] ?? null,
             'shift' => $queryParams['shift'] ?? null,
             'status' => $queryParams['status'] ?? null,
+            'gender' => $queryParams['gender'] ?? null,
+            'sinigep_status' => $queryParams['sinigep_status'] ?? null,
             'academic_cycle' => $queryParams['academic_cycle'] ?? null,
             'page' => $queryParams['page'] ?? 1,
             'per_page' => $queryParams['per_page'] ?? 10
@@ -227,6 +229,8 @@ class StudentController {
             'commission' => $queryParams['comision'] ?? null,
             'academic_year' => $queryParams['ciclo'] ?? null,
             'status' => $queryParams['estado'] ?? null,
+            'gender' => $queryParams['sexo'] ?? null,
+            'sinigep_status' => $queryParams['sinigep_status'] ?? null,
             'name' => $queryParams['name'] ?? null,
             'lastname' => $queryParams['lastname'] ?? null,
             'scholarship_id' => $queryParams['scholarship_id'] ?? null,
@@ -255,6 +259,8 @@ class StudentController {
             'commission' => $queryParams['comision'] ?? null,
             'academic_year' => $queryParams['ciclo'] ?? null,
             'status' => $queryParams['estado'] ?? null,
+            'gender' => $queryParams['sexo'] ?? null,
+            'sinigep_status' => $queryParams['sinigep_status'] ?? null,
             'name' => $queryParams['name'] ?? null,
             'lastname' => $queryParams['lastname'] ?? null,
             'scholarship_id' => $queryParams['scholarship_id'] ?? null,
@@ -330,5 +336,43 @@ class StudentController {
             $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al enviar: ' . $e->getMessage()]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
+    }
+    public function uploadDocument(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $type = $args['type']; // dni, degree, etc.
+        $uploadedFiles = $request->getUploadedFiles();
+        $uploadedFile = $uploadedFiles['file'] ?? null;
+
+        if (!$uploadedFile || $uploadedFile->getError() !== UPLOAD_ERR_OK) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al subir el archivo']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $student = $this->repository->getById($id);
+        if (!$student) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Estudiante no encontrado']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+
+        $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+        $filename = sprintf('%s_%s_%s.%s', $id, $type, bin2hex(random_bytes(4)), $extension);
+        
+        $uploadPath = __DIR__ . '/../../public/uploads/documents';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        $uploadedFile->moveTo($uploadPath . DIRECTORY_SEPARATOR . $filename);
+        $relativePath = '/uploads/documents/' . $filename;
+
+        $student['file_' . $type] = $relativePath;
+        $this->repository->update($id, $student);
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success', 
+            'message' => 'Documento subido correctamente',
+            'path' => $relativePath
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
     }
 }

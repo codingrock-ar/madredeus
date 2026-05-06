@@ -28,11 +28,28 @@ class EmailService {
         try {
             $estr = new Transaccional($apiKey);
             $mailParams = new MailParams();
+            $logoUrl = 'http://codingrock.site/imagenes/LogoMadreDeus.png';
+            $htmlBody = "
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;'>
+                    <div style='text-align: center; margin-bottom: 20px;'>
+                        <img src='{$logoUrl}' alt='Instituto Madre Deus' style='max-width: 200px;'>
+                    </div>
+                    <div style='color: #333; line-height: 1.6;'>
+                        " . nl2br($body) . "
+                    </div>
+                    <div style='margin-top: 30px; border-top: 1px solid #eee; pt-20; font-size: 12px; color: #777; text-align: center;'>
+                        Este es un correo automático, por favor no respondas a este mensaje.<br>
+                        Instituto Madre Deus - Administración
+                    </div>
+                </div>
+            ";
+
             $mailParams
                 ->setFrom($fromEmail, $fromName)
+                ->setReplyTo($fromEmail)
                 ->setTo($to)
                 ->setSubject($subject)
-                ->setHtml(nl2br($body))
+                ->setHtml($htmlBody)
                 ->setText($body);
 
             return $estr->mail->send($mailParams);

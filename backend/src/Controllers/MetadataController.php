@@ -48,6 +48,8 @@ class MetadataController {
             'media_sources' => [
                 'Diarios', 'Internet', 'Otras Personas', 'Radio', 'Revistas', 'TV', 'Vía Pública'
             ],
+            'sinigep_statuses' => ['Pendiente', 'Informado', 'Error', 'Rechazado'],
+            'genders' => ['Masculino', 'Femenino', 'Otro', 'No especifica'],
             'shifts' => $shifts,
             'commissions' => $commissions,
             'career_shifts' => $careerShifts,

@@ -52,6 +52,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
         $studentGroup->post('/{id}/inscriptions/{inscription_id}/grades', \App\Controllers\GradeController::class . ':saveGrades');
         $studentGroup->post('/{id}/send-legajo', \App\Controllers\StudentController::class . ':sendLegajoEmail');
         $studentGroup->post('/{id}/generate-payments', \App\Controllers\PaymentController::class . ':generatePayments');
+        $studentGroup->post('/{id}/documents/{type}', \App\Controllers\StudentController::class . ':uploadDocument');
         $studentGroup->put('/{id}', \App\Controllers\StudentController::class . ':update');
         $studentGroup->delete('/{id}', \App\Controllers\StudentController::class . ':delete');
     });

@@ -113,6 +113,18 @@ export default {
                                         <option v-for="status in metadata.civil_statuses" :key="status" :value="status">{{status}}</option>
                                     </select>
                                 </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-primary fw-bold">Sexo (Sinigep)</label>
+                                    <select class="form-select border-primary" v-model="student.gender">
+                                        <option v-for="g in metadata.genders" :key="g" :value="g">{{g}}</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-info fw-bold">Estado Sinigep</label>
+                                    <select class="form-select border-info" v-model="student.sinigep_status">
+                                        <option v-for="s in metadata.sinigep_statuses" :key="s" :value="s">{{s}}</option>
+                                    </select>
+                                </div>
                                 
                                 <div class="col-12"><hr class="text-muted my-2"></div>
                                 <h6 class="fw-bold mb-2">Estudios</h6>
@@ -469,59 +481,134 @@ export default {
                         <div v-show="tab === 'docs' || isPrinting" class="fade-in">
                             <div class="row g-4">
                                 <div class="col-md-12">
-                                    <h6 class="fw-bold mb-3">Requisitos</h6>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0">Requisitos</h6>
+                                        <button v-if="student.id" type="button" class="btn btn-soft-warning btn-sm" @click="notifyMissingDocs" :disabled="sendingNotification">
+                                            <span v-if="sendingNotification" class="spinner-border spinner-border-sm me-2"></span>
+                                            <i v-else class="ph ph-bell me-1"></i> Notificar Faltantes (Email)
+                                        </button>
+                                    </div>
                                     
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="req1" v-model="student.req_dni_photocopy">
-                                                <label class="form-check-label" for="req1">Fotocopia del DNI</label>
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <div class="form-check flex-grow-1">
+                                                    <input class="form-check-input" type="checkbox" id="req1" v-model="student.req_dni_photocopy">
+                                                    <label class="form-check-label" for="req1">Fotocopia del DNI</label>
+                                                </div>
+                                                <div v-if="student.id" class="doc-upload-zone">
+                                                    <a v-if="student.file_dni" :href="window.API_BASE + student.file_dni" target="_blank" class="btn btn-icon btn-xs btn-outline-success me-1" title="Ver archivo">
+                                                        <i class="ph ph-file"></i>
+                                                    </a>
+                                                    <label :for="'file-dni'" class="btn btn-icon btn-xs btn-outline-primary m-0" title="Subir archivo">
+                                                        <i class="ph ph-upload-simple"></i>
+                                                        <input type="file" :id="'file-dni'" class="d-none" @change="uploadDoc($event, 'dni')">
+                                                    </label>
+                                                </div>
                                             </div>
                                             
                                             <div class="mb-3">
-                                                <div class="form-check mb-1">
-                                                    <input class="form-check-input" type="checkbox" id="req2" v-model="student.req_degree_photocopy">
-                                                    <label class="form-check-label" for="req2">Fotocopia del título</label>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <div class="form-check flex-grow-1">
+                                                        <input class="form-check-input" type="checkbox" id="req2" v-model="student.req_degree_photocopy">
+                                                        <label class="form-check-label" for="req2">Fotocopia del título</label>
+                                                    </div>
+                                                    <div v-if="student.id" class="doc-upload-zone">
+                                                        <a v-if="student.file_degree" :href="window.API_BASE + student.file_degree" target="_blank" class="btn btn-icon btn-xs btn-outline-success me-1" title="Ver archivo">
+                                                            <i class="ph ph-file"></i>
+                                                        </a>
+                                                        <label :for="'file-degree'" class="btn btn-icon btn-xs btn-outline-primary m-0" title="Subir archivo">
+                                                            <i class="ph ph-upload-simple"></i>
+                                                            <input type="file" :id="'file-degree'" class="d-none" @change="uploadDoc($event, 'degree')">
+                                                        </label>
+                                                    </div>
                                                 </div>
                                                 <textarea v-if="student.req_degree_photocopy" class="form-control form-control-sm mt-1" v-model="student.req_degree_photocopy_obs" placeholder="Observaciones título..."></textarea>
                                             </div>
 
-                                            <div class="form-check mb-3">
-                                                <input class="form-check-input" type="checkbox" id="req3" v-model="student.req_two_photos">
-                                                <label class="form-check-label" for="req3">Dos fotos 4x4</label>
+                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                <div class="form-check flex-grow-1">
+                                                    <input class="form-check-input" type="checkbox" id="req3" v-model="student.req_two_photos">
+                                                    <label class="form-check-label" for="req3">Dos fotos 4x4</label>
+                                                </div>
+                                                <!-- No file upload for photos as it's usually physical, but could be added if needed -->
                                             </div>
                                         </div>
 
                                         <div class="col-md-6">
                                              <div class="mb-3">
-                                                <div class="form-check mb-1">
-                                                    <input class="form-check-input" type="checkbox" id="req4" v-model="student.req_psychophysical">
-                                                    <label class="form-check-label" for="req4">Certificado de aptitud psicofísica</label>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <div class="form-check flex-grow-1">
+                                                        <input class="form-check-input" type="checkbox" id="req4" v-model="student.req_psychophysical">
+                                                        <label class="form-check-label" for="req4">Certificado de aptitud psicofísica</label>
+                                                    </div>
+                                                    <div v-if="student.id" class="doc-upload-zone">
+                                                        <a v-if="student.file_psychophysical" :href="window.API_BASE + student.file_psychophysical" target="_blank" class="btn btn-icon btn-xs btn-outline-success me-1" title="Ver archivo">
+                                                            <i class="ph ph-file"></i>
+                                                        </a>
+                                                        <label :for="'file-psy'" class="btn btn-icon btn-xs btn-outline-primary m-0" title="Subir archivo">
+                                                            <i class="ph ph-upload-simple"></i>
+                                                            <input type="file" :id="'file-psy'" class="d-none" @change="uploadDoc($event, 'psychophysical')">
+                                                        </label>
+                                                    </div>
                                                 </div>
                                                 <textarea v-if="student.req_psychophysical" class="form-control form-control-sm mt-1" v-model="student.req_psychophysical_obs" placeholder="Observaciones psicofísico..."></textarea>
                                             </div>
 
                                             <div class="mb-3">
-                                                <div class="form-check mb-1">
-                                                    <input class="form-check-input" type="checkbox" id="req5" v-model="student.req_vaccines">
-                                                    <label class="form-check-label" for="req5">Certificado de vacunas</label>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <div class="form-check flex-grow-1">
+                                                        <input class="form-check-input" type="checkbox" id="req5" v-model="student.req_vaccines">
+                                                        <label class="form-check-label" for="req5">Certificado de vacunas</label>
+                                                    </div>
+                                                    <div v-if="student.id" class="doc-upload-zone">
+                                                        <a v-if="student.file_vaccines" :href="window.API_BASE + student.file_vaccines" target="_blank" class="btn btn-icon btn-xs btn-outline-success me-1" title="Ver archivo">
+                                                            <i class="ph ph-file"></i>
+                                                        </a>
+                                                        <label :for="'file-vac'" class="btn btn-icon btn-xs btn-outline-primary m-0" title="Subir archivo">
+                                                            <i class="ph ph-upload-simple"></i>
+                                                            <input type="file" :id="'file-vac'" class="d-none" @change="uploadDoc($event, 'vaccines')">
+                                                        </label>
+                                                    </div>
                                                 </div>
                                                 <textarea v-if="student.req_vaccines" class="form-control form-control-sm mt-1" v-model="student.req_vaccines_obs" placeholder="Observaciones vacunas..."></textarea>
                                             </div>
                                         </div>
 
                                         <div class="col-md-6">
-                                            <div class="form-check mb-3">
-                                                <input class="form-check-input" type="checkbox" id="req6" v-model="student.req_student_book">
-                                                <label class="form-check-label" for="req6">Libreta</label>
+                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                <div class="form-check flex-grow-1">
+                                                    <input class="form-check-input" type="checkbox" id="req6" v-model="student.req_student_book">
+                                                    <label class="form-check-label" for="req6">Libreta</label>
+                                                </div>
+                                                <div v-if="student.id" class="doc-upload-zone">
+                                                    <a v-if="student.file_student_book" :href="window.API_BASE + student.file_student_book" target="_blank" class="btn btn-icon btn-xs btn-outline-success me-1" title="Ver archivo">
+                                                        <i class="ph ph-file"></i>
+                                                    </a>
+                                                    <label :for="'file-book'" class="btn btn-icon btn-xs btn-outline-primary m-0" title="Subir archivo">
+                                                        <i class="ph ph-upload-simple"></i>
+                                                        <input type="file" :id="'file-book'" class="d-none" @change="uploadDoc($event, 'student_book')">
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
                                         
                                         <div class="col-md-6">
                                             <div class="mb-3">
-                                                <div class="form-check mb-1">
-                                                    <input class="form-check-input" type="checkbox" id="req7" v-model="student.req_final_degree">
-                                                    <label class="form-check-label" for="req7">Título Final</label>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <div class="form-check flex-grow-1">
+                                                        <input class="form-check-input" type="checkbox" id="req7" v-model="student.req_final_degree">
+                                                        <label class="form-check-label" for="req7">Título Final</label>
+                                                    </div>
+                                                    <div v-if="student.id" class="doc-upload-zone">
+                                                        <a v-if="student.file_final_degree" :href="window.API_BASE + student.file_final_degree" target="_blank" class="btn btn-icon btn-xs btn-outline-success me-1" title="Ver archivo">
+                                                            <i class="ph ph-file"></i>
+                                                        </a>
+                                                        <label :for="'file-final'" class="btn btn-icon btn-xs btn-outline-primary m-0" title="Subir archivo">
+                                                            <i class="ph ph-upload-simple"></i>
+                                                            <input type="file" :id="'file-final'" class="d-none" @change="uploadDoc($event, 'final_degree')">
+                                                        </label>
+                                                    </div>
                                                 </div>
                                                 <textarea v-if="student.req_final_degree" class="form-control form-control-sm mt-1" v-model="student.req_final_degree_obs" placeholder="Observaciones título final..."></textarea>
                                             </div>
@@ -584,10 +671,19 @@ export default {
                 req_vaccines: false,
                 req_student_book: false,
                 req_final_degree: false,
+                gender: 'No especifica',
+                sinigep_status: 'Pendiente',
+                file_dni: null,
+                file_degree: null,
+                file_psychophysical: null,
+                file_vaccines: null,
+                file_student_book: null,
+                file_final_degree: null,
                 inscriptions: []
             },
             originalStudent: null,
             loading: false,
+            sendingNotification: false,
             savingGrades: false,
             isPrinting: false,
             error: null,
@@ -1168,6 +1264,60 @@ export default {
                 } catch (error) {
                     Swal.fire('Error', 'No se pudo eliminar el pago.', 'error');
                 }
+            }
+        },
+        async notifyMissingDocs() {
+            if (!confirm("¿Deseas enviar un correo al alumno recordando la documentación faltante?")) return;
+            
+            this.sendingNotification = true;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(window.API_BASE + '/api/reminders/documentation', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ student_id: this.student.id })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    Swal.fire('¡Enviado!', 'Se ha enviado el recordatorio por email.', 'success');
+                } else {
+                    Swal.fire('Atención', result.message || 'Error al enviar notificación', 'warning');
+                }
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'No se pudo conectar con el servidor para enviar la notificación.', 'error');
+            } finally {
+                this.sendingNotification = false;
+            }
+        },
+        async uploadDoc(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${window.API_BASE}/api/students/${this.student.id}/documents/${type}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    Swal.fire('¡Éxito!', 'Archivo subido correctamente.', 'success');
+                    this.student['file_' + type] = result.path;
+                } else {
+                    Swal.fire('Error', result.message || 'Error al subir archivo', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'Error de conexión al subir el documento.', 'error');
             }
         }
     },
