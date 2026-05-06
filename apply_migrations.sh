@@ -26,8 +26,8 @@ echo "Iniciando migraciones para la base de datos: $DB_NAME ($DB_HOST)..."
 
 MIGRATIONS_DIR="$BASE_DIR/backend/sql/migrations"
 
-# Ejecutar las dos últimas migraciones necesarias para esta tarea
-FILES=("20_add_gender_and_sinigep_status.sql" "21_add_document_files.sql")
+# Ejecutar las últimas migraciones necesarias para esta tarea
+FILES=("20_add_gender_and_sinigep_status.sql" "21_add_document_files.sql" "22_add_book_folio_to_inscriptions.sql")
 
 for FILE in "${FILES[@]}"; do
     FILE_PATH="$MIGRATIONS_DIR/$FILE"
