@@ -1,12 +1,5 @@
 RewriteEngine On
-
-# Si el archivo existe físicamente, servirlo directamente
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^ - [L]
-
-# Si el directorio existe, servirlo (opcional, pero útil para carpetas de assets)
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Todo lo demás se envía a Slim
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
