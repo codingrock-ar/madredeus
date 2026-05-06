@@ -28,7 +28,7 @@ class EmailService {
         try {
             $estr = new Transaccional($apiKey);
             $mailParams = new MailParams();
-            $logoUrl = 'http://codingrock.site/imagenes/LogoMadreDeus.png';
+            $logoUrl = 'http://138.36.236.120/madredeus/backend/public/imagenes/LogoMadreDeus.png';
             $htmlBody = "
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;'>
                     <div style='text-align: center; margin-bottom: 20px;'>
