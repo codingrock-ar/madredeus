@@ -139,15 +139,20 @@ class StudentController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
         
-        $success = $this->repository->update($id, $data);
-        
-        if ($success) {
-            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Estudiante actualizado exitosamente']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        try {
+            $success = $this->repository->update($id, $data);
+            
+            if ($success) {
+                $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Estudiante actualizado exitosamente']));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            }
+            
+            $response->getBody()->write(json_encode(['error' => 'Estudiante no encontrado']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
-        
-        $response->getBody()->write(json_encode(['error' => 'Error al actualizar o estudiante no encontrado']));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
     
     public function delete(Request $request, Response $response, $args) {

@@ -491,8 +491,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             return true;
         } catch (\Exception $e) {
             $this->db->rollBack();
-            error_log("Error updating student: " . $e->getMessage());
-            return false;
+            throw new \Exception("Error en BD: " . $e->getMessage());
         }
     }
 
