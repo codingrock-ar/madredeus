@@ -219,7 +219,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $sql = "INSERT INTO students (
                         dni, name, lastname, email, birthdate, nationality, phone, address, city,
                         photo, birth_place, document_type, civil_status, max_education_level, education_finished, degree_obtained,
-                        institution, book, folio, scholarship_id, academic_year, address_street, address_number, address_type, address_province,
+                        institution, book, folio, scholarship_id, academic_year, address_street, address_number, address_type,
                         address_locality, address_zip_code, phone_landline, phone_mobile, req_dni_photocopy, req_degree_photocopy,
                         req_degree_photocopy_obs, req_two_photos, req_psychophysical, req_psychophysical_obs, req_vaccines,
                         req_vaccines_obs, req_student_book, req_final_degree, req_final_degree_obs, found_institution, notes,
@@ -228,7 +228,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                     ) VALUES (
                         :dni, :name, :lastname, :email, :birthdate, :nationality, :phone, :address, :city,
                         :photo, :birth_place, :document_type, :civil_status, :max_education_level, :education_finished, :degree_obtained,
-                        :institution, :book, :folio, :scholarship_id, :academic_year, :address_street, :address_number, :address_type, :address_province,
+                        :institution, :book, :folio, :scholarship_id, :academic_year, :address_street, :address_number, :address_type,
                         :address_locality, :address_zip_code, :phone_landline, :phone_mobile, :req_dni_photocopy, :req_degree_photocopy,
                         :req_degree_photocopy_obs, :req_two_photos, :req_psychophysical, :req_psychophysical_obs, :req_vaccines,
                         :req_vaccines_obs, :req_student_book, :req_final_degree, :req_final_degree_obs, :found_institution, :notes,
@@ -334,7 +334,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         scholarship_id = :scholarship_id,
                         academic_year = :academic_year, address_street = :address_street,
                         address_number = :address_number, address_type = :address_type,
-                        address_province = :address_province, address_locality = :address_locality,
+                        address_locality = :address_locality,
                         address_zip_code = :address_zip_code, phone_landline = :phone_landline,
                         phone_mobile = :phone_mobile, req_dni_photocopy = :req_dni_photocopy,
                         req_degree_photocopy = :req_degree_photocopy, req_degree_photocopy_obs = :req_degree_photocopy_obs,
