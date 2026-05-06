@@ -1,5 +1,9 @@
 RewriteEngine On
 RewriteBase /
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Ignorar archivos físicos y directorios
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# El resto a index.php
 RewriteRule ^ index.php [QSA,L]
