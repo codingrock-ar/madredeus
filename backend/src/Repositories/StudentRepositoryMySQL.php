@@ -219,7 +219,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $sql = "INSERT INTO students (
                         dni, name, lastname, email, birthdate, nationality, phone, address, city,
                         photo, birth_place, document_type, civil_status, max_education_level, education_finished, degree_obtained,
-                        institution, book, folio, scholarship_id, academic_year, address_street, address_number, address_type,
+                        institution, scholarship_id, academic_year, address_street, address_number, address_type,
                         address_locality, address_zip_code, phone_landline, phone_mobile, req_dni_photocopy, req_degree_photocopy,
                         req_degree_photocopy_obs, req_two_photos, req_psychophysical, req_psychophysical_obs, req_vaccines,
                         req_vaccines_obs, req_student_book, req_final_degree, req_final_degree_obs, found_institution, notes,
@@ -228,7 +228,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                     ) VALUES (
                         :dni, :name, :lastname, :email, :birthdate, :nationality, :phone, :address, :city,
                         :photo, :birth_place, :document_type, :civil_status, :max_education_level, :education_finished, :degree_obtained,
-                        :institution, :book, :folio, :scholarship_id, :academic_year, :address_street, :address_number, :address_type,
+                        :institution, :scholarship_id, :academic_year, :address_street, :address_number, :address_type,
                         :address_locality, :address_zip_code, :phone_landline, :phone_mobile, :req_dni_photocopy, :req_degree_photocopy,
                         :req_degree_photocopy_obs, :req_two_photos, :req_psychophysical, :req_psychophysical_obs, :req_vaccines,
                         :req_vaccines_obs, :req_student_book, :req_final_degree, :req_final_degree_obs, :found_institution, :notes,
@@ -330,7 +330,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         photo = :photo, birth_place = :birth_place, document_type = :document_type,
                         civil_status = :civil_status, max_education_level = :max_education_level,
                         education_finished = :education_finished, degree_obtained = :degree_obtained,
-                        institution = :institution, book = :book, folio = :folio,
+                        institution = :institution,
                         scholarship_id = :scholarship_id,
                         academic_year = :academic_year, address_street = :address_street,
                         address_number = :address_number, address_type = :address_type,
