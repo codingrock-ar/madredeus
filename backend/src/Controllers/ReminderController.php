@@ -37,9 +37,14 @@ class ReminderController {
         }
 
         $notification = new PaymentReminderNotification($student, $debt);
-        $notification->send();
+        $success = $notification->send();
 
-        $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Reminder sent']));
+        if ($success) {
+            $this->studentRepository->updateLastNotified($studentId);
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Reminder sent']));
+        } else {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Mail delivery failed']));
+        }
         return $response->withHeader('Content-Type', 'application/json');
     }
 
@@ -78,9 +83,14 @@ class ReminderController {
         }
 
         $notification = new DocumentationReminderNotification($student, $missing);
-        $notification->send();
+        $success = $notification->send();
 
-        $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Reminder sent']));
+        if ($success) {
+            $this->studentRepository->updateLastNotifiedDocs($studentId);
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Reminder sent']));
+        } else {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Mail delivery failed']));
+        }
         return $response->withHeader('Content-Type', 'application/json');
     }
 }

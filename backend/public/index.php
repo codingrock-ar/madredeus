@@ -53,6 +53,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
         $studentGroup->post('/{id}/send-legajo', \App\Controllers\StudentController::class . ':sendLegajoEmail');
         $studentGroup->post('/{id}/generate-payments', \App\Controllers\PaymentController::class . ':generatePayments');
         $studentGroup->post('/{id}/documents/{type}', \App\Controllers\StudentController::class . ':uploadDocument');
+        $studentGroup->post('/{id}/notify-docs', \App\Controllers\StudentController::class . ':notifyDocs');
         $studentGroup->put('/{id}', \App\Controllers\StudentController::class . ':update');
         $studentGroup->delete('/{id}', \App\Controllers\StudentController::class . ':delete');
     });
@@ -120,6 +121,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->put('/payments/{id}', \App\Controllers\PaymentController::class . ':update');
     $group->post('/payments/{id}/notify-late', \App\Controllers\PaymentController::class . ':notifyLate');
     $group->post('/payments/{id}/process', \App\Controllers\PaymentController::class . ':processPayment');
+
     $group->post('/reminders/payment', \App\Controllers\ReminderController::class . ':payReminder');
     $group->post('/reminders/documentation', \App\Controllers\ReminderController::class . ':docReminder');
     $group->delete('/payments/{id}', \App\Controllers\PaymentController::class . ':delete');

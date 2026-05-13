@@ -15,9 +15,11 @@ class PaymentRepositoryMySQL {
     public function getAll(array $filters = []) {
         if (!$this->db) return [];
 
-        $sql = "SELECT p.*, s.name as student_name, s.lastname as student_lastname, s.dni as student_dni
+        $sql = "SELECT p.*, s.name as student_name, s.lastname as student_lastname, s.dni as student_dni,
+                       c.title as career_title
                 FROM payments p
                 JOIN students s ON p.student_id = s.id
+                LEFT JOIN careers c ON p.career_id = c.id
                 WHERE 1=1";
         
         $params = [];
@@ -116,12 +118,13 @@ class PaymentRepositoryMySQL {
     public function create(array $data) {
         if (!$this->db) return false;
         
-        $sql = "INSERT INTO payments (student_id, amount, payment_date, due_date, type, payment_method, concept, status, notes, details) 
-                VALUES (:student_id, :amount, :payment_date, :due_date, :type, :payment_method, :concept, :status, :notes, :details)";
+        $sql = "INSERT INTO payments (student_id, career_id, amount, payment_date, due_date, type, payment_method, concept, status, notes, details) 
+                VALUES (:student_id, :career_id, :amount, :payment_date, :due_date, :type, :payment_method, :concept, :status, :notes, :details)";
         
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
             ':student_id' => $data['student_id'],
+            ':career_id' => $data['career_id'] ?? null,
             ':amount' => $data['amount'],
             ':payment_date' => $data['payment_date'] ?? null,
             ':due_date' => $data['due_date'] ?? null,
@@ -138,6 +141,7 @@ class PaymentRepositoryMySQL {
         if (!$this->db) return false;
         
         $sql = "UPDATE payments SET 
+                career_id = :career_id,
                 amount = :amount, 
                 payment_date = :payment_date, 
                 due_date = :due_date,
@@ -153,6 +157,7 @@ class PaymentRepositoryMySQL {
         
         $updateData = [
             ':id' => $id,
+            ':career_id' => $data['career_id'] ?? null,
             ':amount' => $data['amount'],
             ':payment_date' => $data['payment_date'] ?? null,
             ':due_date' => $data['due_date'] ?? null,
@@ -236,12 +241,19 @@ class PaymentRepositoryMySQL {
         return $stmt->fetchColumn();
     }
 
-    public function cancelPendingByStudent($studentId) {
+    public function cancelPendingByStudent($studentId, $careerId = null) {
         if (!$this->db) return false;
         $sql = "UPDATE payments SET status = 'Anulado' 
                 WHERE student_id = :student_id AND status = 'Pendiente'";
+        $params = [':student_id' => $studentId];
+        
+        if ($careerId) {
+            $sql .= " AND career_id = :career_id";
+            $params[':career_id'] = $careerId;
+        }
+        
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':student_id' => $studentId]);
+        return $stmt->execute($params);
     }
 
     public function getConfigs() {
@@ -256,23 +268,26 @@ class PaymentRepositoryMySQL {
         return $stmt->execute([':key' => $key, ':value' => $value]);
     }
 
-    public function generatePaymentPlan($studentId, array $planData) {
+    public function generatePaymentPlan($studentId, array $planData, $cancelExisting = true, $careerId = null) {
         if (!$this->db) return false;
         
         try {
             $this->db->beginTransaction();
             
-            // First, cancel any existing pending payments for this student to avoid duplicates
-            $this->cancelPendingByStudent($studentId);
+            // Optionally cancel existing pending payments
+            if ($cancelExisting) {
+                $this->cancelPendingByStudent($studentId, $careerId);
+            }
 
-            $sql = "INSERT INTO payments (student_id, amount, base_amount, due_date, type, concept, status, details) 
-                    VALUES (:student_id, :amount, :base_amount, :due_date, :type, :concept, 'Pendiente', :details)";
+            $sql = "INSERT INTO payments (student_id, career_id, amount, base_amount, due_date, type, concept, status, details) 
+                    VALUES (:student_id, :career_id, :amount, :base_amount, :due_date, :type, :concept, 'Pendiente', :details)";
             
             $stmt = $this->db->prepare($sql);
             
             foreach ($planData as $payment) {
                 $stmt->execute([
                     ':student_id' => $studentId,
+                    ':career_id' => $careerId,
                     ':amount' => $payment['amount'],
                     ':base_amount' => $payment['amount'],
                     ':due_date' => $payment['due_date'],
@@ -315,5 +330,11 @@ class PaymentRepositoryMySQL {
             ':method' => $data['payment_method'] ?? 'Efectivo',
             ':notes' => $data['notes'] ?? null
         ]);
+    }
+
+    public function updateLastNotified($id) {
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("UPDATE payments SET last_notified = CURRENT_TIMESTAMP WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
     }
 }

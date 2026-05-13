@@ -112,13 +112,16 @@ class PaymentController {
     public function generatePayments(Request $request, Response $response, $args) {
         $id = $args['id'];
         $data = json_decode((string)$request->getBody(), true);
+        $cancelExisting = $data['cancel_existing'] ?? true;
+        $careerId = $data['career_id'] ?? null;
+        $plan = isset($data['plan']) ? $data['plan'] : $data; 
         
-        if (empty($data) || !is_array($data)) {
+        if (empty($plan) || !is_array($plan)) {
             $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Datos inválidos para generar el plan de pagos']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
-        $success = $this->repository->generatePaymentPlan($id, $data);
+        $success = $this->repository->generatePaymentPlan($id, $plan, $cancelExisting, $careerId);
         
         if ($success) {
             $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Plan de pagos generado correctamente']));
@@ -138,9 +141,31 @@ class PaymentController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
         }
 
-        $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Notificación enviada con éxito']));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        $studentRepo = new \App\Repositories\StudentRepositoryMySQL();
+        $student = $studentRepo->getById($payment['student_id']);
+
+        if (!$student || empty($student['email'])) {
+             $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'El estudiante no tiene un email válido para notificaciones']));
+             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        try {
+            $notification = new \App\Notifications\PaymentReminderNotification($student, $payment['amount'], $payment);
+            $success = $notification->send();
+            
+            if ($success) {
+                $this->repository->updateLastNotified($paymentId);
+                $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Notificación enviada con éxito']));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            } else {
+                throw new \Exception("El servicio de correo no pudo entregar el mensaje");
+            }
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al enviar notificación: ' . $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
     }
+
 
     public function getConfigs(Request $request, Response $response, $args) {
         $configs = $this->repository->getConfigs();

@@ -350,6 +350,7 @@ export default {
                                                 <th>Tipo</th>
                                                 <th>Concepto</th>
                                                 <th>Vencimiento</th>
+                                                <th v-if="student.inscriptions && student.inscriptions.length > 1">Carrera</th>
                                                 <th>Monto</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
@@ -372,6 +373,9 @@ export default {
                                                         <span v-if="p.status === 'Pendiente'" class="d-block extra-small">{{ getDueDaysText(p.due_date) }}</span>
                                                     </span>
                                                 </td>
+                                                <td v-if="student.inscriptions && student.inscriptions.length > 1" class="small text-muted">
+                                                    {{ p.career_title || 'Global' }}
+                                                </td>
                                                 <td class="fw-bold">
                                                     <div v-if="p.status === 'Pagado'">
                                                         $ {{ formatCurrency(p.paid_amount || p.amount) }}
@@ -390,7 +394,8 @@ export default {
                                                     </span>
                                                 </td>
                                                 <td class="text-end">
-                                                    <div class="d-flex justify-content-end gap-1">
+                                                    <div class="d-flex justify-content-end align-items-center gap-1">
+                                                        <i v-if="p.last_notified" class="ph ph-check-circle text-success" :title="'Notificado el ' + formatDate(p.last_notified)"></i>
                                                         <button v-if="p.status === 'Pendiente'" type="button" class="btn btn-icon btn-sm btn-soft-primary" title="Cobrar" @click="openPaymentModal(p)">
                                                             <i class="ph ph-currency-dollar"></i>
                                                         </button>
@@ -427,11 +432,27 @@ export default {
                                             </div>
 
                                             <div class="row g-3">
-                                                <div class="col-12">
+                                                <div v-if="student.inscriptions && student.inscriptions.length > 1" class="col-12">
+                                                    <label class="form-label small fw-bold">Carrera Asociada</label>
+                                                    <select class="form-select" v-model="planConfig.career_id">
+                                                        <option :value="null">Global (Sin carrera específica)</option>
+                                                        <option v-for="ins in student.inscriptions" :key="ins.id" :value="ins.career_id">{{ ins.career_title }}</option>
+                                                    </select>
+                                                    <div class="extra-small text-muted">Vincular los pagos a una carrera específica.</div>
+                                                </div>
+
+                                                 <div class="col-md-6">
+                                                    <label class="form-label small fw-bold">Año Académico</label>
+                                                    <select class="form-select" v-model="planConfig.academic_year">
+                                                        <option :value="new Date().getFullYear()">{{ new Date().getFullYear() }}</option>
+                                                        <option :value="new Date().getFullYear() + 1">{{ new Date().getFullYear() + 1 }}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
                                                     <label class="form-label small fw-bold">Ciclo de Inicio</label>
                                                     <select class="form-select" v-model="planConfig.start_cycle">
-                                                        <option value="Marzo">Marzo (Clásico: Marzo a Diciembre)</option>
-                                                        <option value="Agosto">Agosto (Agosto a Julio del año siguiente)</option>
+                                                        <option value="Marzo">Marzo</option>
+                                                        <option value="Agosto">Agosto</option>
                                                     </select>
                                                 </div>
 
@@ -462,6 +483,16 @@ export default {
                                                     </div>
                                                     <div class="form-text extra-small">Se aplicará a las 10 cuotas.</div>
                                                 </div>
+
+                                                <div class="col-12 mt-3 pt-2 border-top">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="cancelExisting" v-model="planConfig.cancel_existing">
+                                                        <label class="form-check-label small fw-bold text-danger" for="cancelExisting">
+                                                            Anular cuotas pendientes actuales
+                                                        </label>
+                                                        <div class="extra-small text-muted">Marcar solo si se desea reemplazar el plan de pagos actual. Para re-matricular sin borrar cuotas anteriores, desmarcar esta opción.</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="modal-footer border-0 p-3 bg-light rounded-bottom">
@@ -483,10 +514,15 @@ export default {
                                 <div class="col-md-12">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h6 class="fw-bold mb-0">Requisitos</h6>
-                                        <button v-if="student.id" type="button" class="btn btn-soft-warning btn-sm" @click="notifyMissingDocs" :disabled="sendingNotification">
-                                            <span v-if="sendingNotification" class="spinner-border spinner-border-sm me-2"></span>
-                                            <i v-else class="ph ph-bell me-1"></i> Notificar Faltantes (Email)
-                                        </button>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span v-if="student.last_notified_docs" class="extra-small text-success">
+                                                <i class="ph ph-check-circle"></i> Notificado: {{ formatDate(student.last_notified_docs) }}
+                                            </span>
+                                            <button v-if="student.id" type="button" class="btn btn-soft-warning btn-sm" @click="notifyMissingDocs" :disabled="sendingNotification">
+                                                <span v-if="sendingNotification" class="spinner-border spinner-border-sm me-2"></span>
+                                                <i v-else class="ph ph-bell me-1"></i> Notificar Faltantes (Email)
+                                            </button>
+                                        </div>
                                     </div>
                                     
                                     <div class="row g-3">
@@ -721,6 +757,9 @@ export default {
                 matricula_amount: 50000,
                 matricula_due_date: new Date().toISOString().split('T')[0],
                 start_cycle: 'Marzo',
+                academic_year: new Date().getFullYear(),
+                cancel_existing: true,
+                career_id: null,
                 quota_amount: 40000,
                 first_quota_due_date: ''
             }
@@ -1035,7 +1074,7 @@ export default {
                 });
             }
             
-            const startYear = new Date().getFullYear();
+            const startYear = parseInt(this.planConfig.academic_year);
             let currentMonth = this.planConfig.start_cycle === 'Marzo' ? 3 : 8;
             let currentYear = startYear;
 
@@ -1064,7 +1103,11 @@ export default {
                 const response = await fetch(window.API_BASE + '/api/students/' + this.student.id + '/generate-payments', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(planData)
+                    body: JSON.stringify({ 
+                        plan: planData, 
+                        cancel_existing: this.planConfig.cancel_existing,
+                        career_id: this.planConfig.career_id 
+                    })
                 });
                 
                 const result = await response.json();
@@ -1232,6 +1275,9 @@ export default {
                 const result = await response.json();
                 if (response.ok && result.status === 'success') {
                     alert("Notificación enviada con éxito.");
+                    // Actualizar estado local para mostrar el icono de notificado
+                    const p = this.student.payments.find(p => p.id === paymentId);
+                    if (p) p.last_notified = new Date().toISOString().slice(0, 19).replace('T', ' ');
                 } else {
                     alert("Error: " + (result.message || "Error desconocido"));
                 }

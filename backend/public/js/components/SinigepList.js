@@ -9,6 +9,10 @@ export default {
                 </button>
             </div>
             
+            <div v-if="error" class="alert alert-danger mb-4 d-flex align-items-center">
+                <i class="ph ph-warning-circle fs-4 me-2"></i> {{ error }}
+            </div>
+
             <div class="row g-3 mb-4 p-3 bg-light rounded-3 border">
                 <div class="col-md-2">
                     <label class="form-label small fw-bold">Periodo</label>
@@ -84,8 +88,8 @@ export default {
                             <td class="small">{{ student.career }}</td>
                             <td class="text-center">{{ student.academic_cycle || '-' }}</td>
                             <td>
-                                <span class="badge" :class="student.status === 'En Curso' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                                    {{ student.status }}
+                                <span class="badge" :class="student.career_status === 'En Curso' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
+                                    {{ student.career_status }}
                                 </span>
                             </td>
                             <td>
@@ -114,6 +118,7 @@ export default {
                 sinigep_statuses: []
             },
             loading: true,
+            error: null,
             filters: {
                 periodo: '',
                 career: '',
@@ -126,7 +131,10 @@ export default {
     methods: {
         async fetchMetadata() {
             try {
-                const response = await fetch(window.API_BASE + '/api/metadata/student-types');
+                const token = localStorage.getItem('token');
+                const response = await fetch(window.API_BASE + '/api/metadata/student-types', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const result = await response.json();
                 if (result.status === 'success') {
                     this.metadata.genders = result.data.genders;
@@ -138,7 +146,10 @@ export default {
         },
         async fetchCareers() {
             try {
-                const response = await fetch(window.API_BASE + '/api/careers');
+                const token = localStorage.getItem('token');
+                const response = await fetch(window.API_BASE + '/api/careers', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const result = await response.json();
                 if (result.status === 'success') {
                     this.careers = result.data;
@@ -149,15 +160,36 @@ export default {
         },
         async fetchStudents() {
             this.loading = true;
+            this.error = null;
             try {
-                const query = new URLSearchParams(this.filters).toString();
-                const response = await fetch(window.API_BASE + '/api/students/report?' + query);
+                const token = localStorage.getItem('token');
+                
+                // Clean filters: remove empty strings
+                const cleanFilters = {};
+                Object.keys(this.filters).forEach(key => {
+                    if (this.filters[key] !== '' && this.filters[key] !== null) {
+                        cleanFilters[key] = this.filters[key];
+                    }
+                });
+
+                const query = new URLSearchParams(cleanFilters).toString();
+                const response = await fetch(window.API_BASE + '/api/students/report?' + query, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 401) {
+                    return this.$router.push('/login');
+                }
+
                 const result = await response.json();
                 if (result.status === 'success') {
                     this.students = result.data;
+                } else {
+                    this.error = result.message || "Error al cargar alumnos";
                 }
             } catch (error) {
                 console.error("Error fetching students:", error);
+                this.error = "Error de conexión con el servidor";
             } finally {
                 this.loading = false;
             }
@@ -172,15 +204,16 @@ export default {
             }
         },
         exportExcel() {
+            const token = localStorage.getItem('token');
             const query = new URLSearchParams(this.filters).toString();
-            window.location.href = window.API_BASE + '/api/students/export?' + query;
+            // Para descargas con token a veces es necesario usar un link temporal o pasar el token en la query si el backend lo permite
+            window.location.href = window.API_BASE + '/api/students/export?' + query + '&token=' + token;
         }
     },
     async mounted() {
-        await Promise.all([
-            this.fetchMetadata(),
-            this.fetchCareers(),
-            this.fetchStudents()
-        ]);
+        await this.fetchMetadata();
+        await this.fetchCareers();
+        await this.fetchStudents();
     }
+
 }

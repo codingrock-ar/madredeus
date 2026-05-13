@@ -503,33 +503,33 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
 
         // Basic student filters
         if (!empty($filters['id'])) {
-            $where[] = "s.id = :id";
-            $sqlParams[':id'] = $filters['id'];
+            $where[] = "s.id = :s_id";
+            $sqlParams[':s_id'] = $filters['id'];
         }
         if (!empty($filters['name'])) {
-            $where[] = "s.name LIKE :name";
-            $sqlParams[':name'] = '%' . $filters['name'] . '%';
+            $where[] = "s.name LIKE :s_name";
+            $sqlParams[':s_name'] = '%' . $filters['name'] . '%';
         }
         if (!empty($filters['lastname'])) {
-            $where[] = "s.lastname LIKE :lastname";
-            $sqlParams[':lastname'] = '%' . $filters['lastname'] . '%';
+            $where[] = "s.lastname LIKE :s_lastname";
+            $sqlParams[':s_lastname'] = '%' . $filters['lastname'] . '%';
         }
         if (!empty($filters['scholarship_id'])) {
-            $where[] = "s.scholarship_id = :scholarship_id";
-            $sqlParams[':scholarship_id'] = $filters['scholarship_id'];
+            $where[] = "s.scholarship_id = :s_scholarship_id";
+            $sqlParams[':s_scholarship_id'] = $filters['scholarship_id'];
         }
         if (!empty($filters['gender'])) {
-            $where[] = "s.gender = :gender";
-            $sqlParams[':gender'] = $filters['gender'];
+            $where[] = "(TRIM(s.gender) = :s_gender OR s.gender LIKE :s_gender_like)";
+            $sqlParams[':s_gender'] = $filters['gender'];
+            $sqlParams[':s_gender_like'] = substr($filters['gender'], 0, 1) . '%';
         }
         if (!empty($filters['sinigep_status'])) {
-            $where[] = "s.sinigep_status = :sinigep_status";
-            $sqlParams[':sinigep_status'] = $filters['sinigep_status'];
+            $where[] = "s.sinigep_status = :s_sinigep_status";
+            $sqlParams[':s_sinigep_status'] = $filters['sinigep_status'];
         }
 
         // Inscription filters (exists subquery for multi-career)
         $insFilters = [];
-        $insParams = [];
         if (!empty($filters['career'])) {
             if ($filters['career'] === 'none') {
                 $where[] = "NOT EXISTS (SELECT 1 FROM student_career_inscriptions sci3 WHERE sci3.student_id = s.id)";
@@ -538,25 +538,25 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             } else if ($filters['career'] === 'multiple') {
                 $where[] = "(SELECT COUNT(*) FROM student_career_inscriptions sci4 WHERE sci4.student_id = s.id) > 1";
             } else {
-                $insFilters[] = "c2.title = :career";
-                $insParams[':career'] = $filters['career'];
+                $insFilters[] = "c2.title = :ins_career";
+                $sqlParams[':ins_career'] = $filters['career'];
             }
         }
         if (!empty($filters['academic_cycle'])) {
-            $insFilters[] = "sci2.academic_cycle = :academic_cycle";
-            $insParams[':academic_cycle'] = $filters['academic_cycle'];
+            $insFilters[] = "sci2.academic_cycle = :ins_academic_cycle";
+            $sqlParams[':ins_academic_cycle'] = $filters['academic_cycle'];
         }
         if (!empty($filters['shift'])) {
-            $insFilters[] = "sci2.shift = :shift";
-            $insParams[':shift'] = $filters['shift'];
+            $insFilters[] = "sci2.shift = :ins_shift";
+            $sqlParams[':ins_shift'] = $filters['shift'];
         }
         if (!empty($filters['commission'])) {
-            $insFilters[] = "sci2.commission = :commission";
-            $insParams[':commission'] = $filters['commission'];
+            $insFilters[] = "sci2.commission = :ins_commission";
+            $sqlParams[':ins_commission'] = $filters['commission'];
         }
         if (!empty($filters['status'])) {
-            $insFilters[] = "sci2.status = :status";
-            $insParams[':status'] = $filters['status'];
+            $insFilters[] = "sci2.status = :ins_status";
+            $sqlParams[':ins_status'] = $filters['status'];
         }
 
         if (!empty($insFilters)) {
@@ -565,7 +565,6 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                 JOIN careers c2 ON sci2.career_id = c2.id 
                 WHERE sci2.student_id = s.id AND " . implode(" AND ", $insFilters) . "
             )";
-            $sqlParams = array_merge($sqlParams, $insParams);
         }
         
         $joinDebt = "";
@@ -576,24 +575,24 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
 
         $whereSql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
         
-        $sqlParams[':career_filter'] = $filters['career'] ?? '';
+        $sqlParams[':pref_career_filter'] = $filters['career'] ?? '';
 
         // Select with preferred career (latest active or first found)
-        $sql = "SELECT DISTINCT s.*, st.name as scholarship_name, pref.career_title as career, pref.commission, pref.shift, pref.status, pref.academic_cycle
+        $sql = "SELECT DISTINCT s.*, st.name as scholarship_name, pref.career_title as career, pref.commission, pref.shift, pref.career_status, pref.academic_cycle
                 FROM students s 
                 LEFT JOIN scholarship_types st ON s.scholarship_id = st.id 
                 LEFT JOIN (
-                    SELECT t.student_id, t.career_title, t.commission, t.shift, t.status, t.academic_cycle
+                    SELECT t.student_id, t.career_title, t.commission, t.shift, t.career_status, t.academic_cycle
                     FROM (
-                        SELECT sci.student_id, c.title as career_title, sci.commission, sci.shift, sci.status, sci.academic_cycle,
-                               ROW_NUMBER() OVER (
-                                   PARTITION BY sci.student_id
-                                   ORDER BY
-                                       (CASE WHEN c.title = :career_filter THEN 0 ELSE 1 END),
-                                       (CASE WHEN sci.status != 'Finalizó Cursada' THEN 0 ELSE 1 END),
-                                       sci.inscription_date DESC,
-                                       sci.id DESC
-                               ) as rn
+                        SELECT sci.student_id, c.title as career_title, sci.commission, sci.shift, sci.status as career_status, sci.academic_cycle,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY sci.student_id
+                                    ORDER BY
+                                        (CASE WHEN c.title = :pref_career_filter THEN 0 ELSE 1 END),
+                                        (CASE WHEN sci.status != 'Finalizó Cursada' THEN 0 ELSE 1 END),
+                                        sci.inscription_date DESC,
+                                        sci.id DESC
+                                ) as rn
                         FROM student_career_inscriptions sci
                         JOIN careers c ON sci.career_id = c.id
                     ) t WHERE t.rn = 1
@@ -602,15 +601,21 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                 $whereSql 
                 ORDER BY s.lastname, s.name";
 
-        $stmt = $this->db->prepare($sql);
-        foreach ($sqlParams as $key => $val) {
-             // Only bind if the parameter is actually in the SQL
-             if (strpos($sql, $key) !== false) {
-                $stmt->bindValue($key, $val);
-             }
+        try {
+            $stmt = $this->db->prepare($sql);
+            foreach ($sqlParams as $key => $val) {
+                 if (strpos($sql, $key) !== false) {
+                    $stmt->bindValue($key, $val);
+                 }
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error in getForReport: " . $e->getMessage());
+            error_log("SQL: " . $sql);
+            error_log("Params: " . json_encode($sqlParams));
+            return [];
         }
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     private function mapParams(array $data) {
@@ -733,5 +738,10 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             error_log("Error in inscribeCareer: " . $e->getMessage());
             return false;
         }
+    }
+    public function updateLastNotifiedDocs($id) {
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("UPDATE students SET last_notified_docs = CURRENT_TIMESTAMP WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
     }
 }

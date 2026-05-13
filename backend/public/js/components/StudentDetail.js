@@ -46,7 +46,7 @@ export default {
                     <h5 class="fw-bold mb-1 text-uppercase">{{ student.lastname }}, {{ student.name }}</h5>
                     <p class="text-muted small mb-2">ID: #{{ student.id }} | DNI: {{ student.dni }}</p>
                     <div class="d-flex flex-wrap justify-content-center gap-1 mb-2">
-                        <span v-for="ins in (student.inscriptions || [])" :key="'badge-'+ins.id" 
+                        <span v-for="ins in uniqueBadges" :key="'badge-'+ins.status" 
                               class="badge" :class="getBadgeClass(ins.status)">
                             {{ ins.status }}
                         </span>
@@ -55,7 +55,7 @@ export default {
                     <hr class="my-3">
                     
                     <div class="text-start small">
-                        <div v-for="ins in (student.inscriptions || [])" :key="ins.id" class="mb-3 border-start ps-2 border-primary">
+                        <div v-for="ins in uniqueInscriptions" :key="ins.id" class="mb-3 border-start ps-2 border-primary">
                             <label class="text-muted d-block small mb-0">{{ ins.career_title }}</label>
                             <span class="fw-bold d-block">{{ ins.commission || '-' }} ({{ ins.shift || '-' }})</span>
                             <span class="text-muted extra-small">Ciclo: {{ ins.academic_cycle || '-' }} | Libro/Folio: {{ ins.book || '-' }}/{{ ins.folio || '-' }}</span>
@@ -522,6 +522,25 @@ export default {
                 case 'Egresado': return 'bg-soft-info text-info';
                 default: return 'bg-soft-warning text-warning';
             }
+        },
+        uniqueInscriptions() {
+            if (!this.student || !this.student.inscriptions) return [];
+            const seen = new Set();
+            return this.student.inscriptions.filter(ins => {
+                const key = `${ins.career_id}-${ins.academic_cycle}-${ins.commission}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        },
+        uniqueBadges() {
+            if (!this.student || !this.student.inscriptions) return [];
+            const seen = new Set();
+            return this.student.inscriptions.filter(ins => {
+                if (seen.has(ins.status)) return false;
+                seen.add(ins.status);
+                return true;
+            });
         }
     },
     async mounted() {

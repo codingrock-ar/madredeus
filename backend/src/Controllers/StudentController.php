@@ -229,28 +229,38 @@ class StudentController {
         $filters = [
             'id' => $queryParams['legajo'] ?? null,
             'career' => $queryParams['career'] ?? null,
+            'periodo' => $queryParams['periodo'] ?? null, // Added for logging
             'academic_cycle' => $queryParams['periodo'] ?? null,
-            'shift' => $queryParams['turno'] ?? null,
-            'commission' => $queryParams['comision'] ?? null,
-            'academic_year' => $queryParams['ciclo'] ?? null,
-            'status' => $queryParams['estado'] ?? null,
-            'gender' => $queryParams['sexo'] ?? null,
-            'sinigep_status' => $queryParams['sinigep_status'] ?? null,
+            'commission' => $queryParams['commission'] ?? null,
+            'shift' => $queryParams['shift'] ?? null,
+            'status' => $queryParams['status'] ?? null,
             'name' => $queryParams['name'] ?? null,
             'lastname' => $queryParams['lastname'] ?? null,
+            'gender' => $queryParams['sexo'] ?? null,
+            'sinigep_status' => $queryParams['sinigep_status'] ?? null,
             'scholarship_id' => $queryParams['scholarship_id'] ?? null,
             'has_scholarship' => !empty($queryParams['becados']) && $queryParams['becados'] == 'true',
             'has_debt' => !empty($queryParams['deudores']) && $queryParams['deudores'] == 'true'
         ];
 
-        $students = $this->repository->getForReport($filters);
 
-        $response->getBody()->write(json_encode([
-            'status' => 'success',
-            'data' => $students
-        ]));
+        try {
+            $students = $this->repository->getForReport($filters);
+            
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'data' => $students
+            ]));
+        } catch (\Exception $e) {
+            error_log("Error in StudentController::report: " . $e->getMessage());
+            $response->getBody()->write(json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
         
-        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function exportExcel(Request $request, Response $response, $args) {
@@ -342,6 +352,50 @@ class StudentController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     }
+    public function notifyDocs(Request $request, Response $response, $args) {
+        $id = $args['id'];
+        $student = $this->repository->getById($id);
+        
+        if (!$student) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Estudiante no encontrado']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+
+        if (empty($student['email'])) {
+             $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'El estudiante no tiene un email válido para notificaciones']));
+             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $missing = [];
+        if (!$student['req_dni_photocopy']) $missing[] = "Fotocopia DNI";
+        if (!$student['req_degree_photocopy']) $missing[] = "Fotocopia Título";
+        if (!$student['req_two_photos']) $missing[] = "Dos fotos 4x4";
+        if (!$student['req_psychophysical']) $missing[] = "Apto Psicofísico";
+        if (!$student['req_student_book']) $missing[] = "Libreta Estudiantil";
+        if (!$student['req_vaccines']) $missing[] = "Certificado de Vacunas";
+
+        if (empty($missing)) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'El alumno no tiene documentación pendiente registrada']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        try {
+            $notification = new \App\Notifications\DocumentationReminderNotification($student, $missing);
+            $success = $notification->send();
+            
+            if ($success) {
+                $this->repository->updateLastNotifiedDocs($id);
+                $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Notificación de documentación enviada']));
+                return $response->withHeader('Content-Type', 'application/json');
+            } else {
+                throw new \Exception("Error al enviar email");
+            }
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al enviar: ' . $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    }
+
     public function uploadDocument(Request $request, Response $response, $args) {
         $id = $args['id'];
         $type = $args['type']; // dni, degree, etc.

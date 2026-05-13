@@ -25,12 +25,21 @@ class EmailService {
             return false;
         }
 
+        // Ensure UTF-8
+        $body = mb_convert_encoding($body, 'UTF-8', 'UTF-8, ISO-8859-1');
+        $subject = mb_convert_encoding($subject, 'UTF-8', 'UTF-8, ISO-8859-1');
+
         try {
             $estr = new Transaccional($apiKey);
             $mailParams = new MailParams();
             $logoUrl = 'http://138.36.236.120/madredeus/imagenes/LogoMadreDeus.png';
             $htmlBody = "
-                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;'>
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='UTF-8'>
+                </head>
+                <body style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;'>
                     <div style='text-align: center; margin-bottom: 20px;'>
                         <img src='{$logoUrl}' alt='Instituto Madre Deus' style='max-width: 200px;'>
                     </div>
@@ -41,7 +50,8 @@ class EmailService {
                         Este es un correo automático, por favor no respondas a este mensaje.<br>
                         Instituto Madre Deus - Administración
                     </div>
-                </div>
+                </body>
+                </html>
             ";
 
             $mailParams

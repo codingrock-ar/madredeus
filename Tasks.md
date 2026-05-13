@@ -1,7 +1,7 @@
--Que pasa cuando se terminan de pagar los conceptos pendientes?
-Se podrá volver a matricular al alumno para el ciclo siguiente?
-¿Qué pasa con los pagos cuando está anotado en más de una carrera?
-
-usuario: CSGiordano
-mail: canu1982@gmail.com
-
+- [x] ¿Qué pasa con los pagos cuando está anotado en más de una carrera? (Implementado soporte para pagos vinculados a carreras específicas)
+- [x] Al enviar una notificación, mostrar algún icono que indique se fué enviada en lugar de dejar el botón.
+- [x] Si es de un vencimiento, mostrar un icono para la notificación en el primer vencimiento(en caso de haber enviado esa), y dar la oportunidad de mostrarl el botón para enviar notificación de los vencimientos siguientes.
+- [x] Se ven caracteres raros cuando se envia el correo (Corregido agregando charset UTF-8 en EmailService)
+- [x] Listado Sinigep: El filtro por sexo no funcionaba. (Corregido con búsqueda flexible TRIM/LIKE en el backend)
+- [x] Borrar de alumnos duplicados (Limpieza ejecutada y acceso de mantenimiento eliminado)
+- [x] Corrección de vista lateral (En curso repetido múltiples veces)

@@ -5,11 +5,13 @@ namespace App\Notifications;
 class PaymentReminderNotification extends EmailNotification {
     private $student;
     private $debtAmount;
+    private $payment;
 
-    public function __construct($student, $debtAmount) {
+    public function __construct($student, $debtAmount, $payment = null) {
         parent::__construct($student['email'], "Recordatorio de Pago - Instituto Madre Deus");
         $this->student = $student;
         $this->debtAmount = $debtAmount;
+        $this->payment = $payment;
         $this->build();
     }
 
@@ -23,9 +25,12 @@ class PaymentReminderNotification extends EmailNotification {
             $body = str_replace('{name}', $this->student['name'], $body);
             $body = str_replace('{lastname}', $this->student['lastname'], $body);
             $body = str_replace('{amount}', number_format($this->debtAmount, 2, ',', '.'), $body);
-            // Si tuviéramos concepto y fecha aquí, los reemplazaríamos
-            $body = str_replace('{concept}', 'Deuda acumulada', $body);
-            $body = str_replace('{date}', date('d/m/Y'), $body);
+            
+            $concept = $this->payment ? $this->payment['concept'] : 'Deuda acumulada';
+            $date = ($this->payment && !empty($this->payment['due_date'])) ? date('d/m/Y', strtotime($this->payment['due_date'])) : date('d/m/Y');
+
+            $body = str_replace('{concept}', $concept, $body);
+            $body = str_replace('{date}', $date, $body);
             
             $this->body = $body;
         } else {
