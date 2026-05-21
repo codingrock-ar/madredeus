@@ -41,7 +41,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             // Fetch subjects for each inscription
             foreach ($student['inscriptions'] as &$inscription) {
                 $stmt = $this->db->prepare("
-                    SELECT s.*, g.grade, g.status as grade_status, g.id as grade_id
+                    SELECT s.*, g.grade, g.status as grade_status, g.id as grade_id, g.type as grade_type
                     FROM subjects s
                     LEFT JOIN student_grades g ON s.id = g.subject_id AND g.inscription_id = :inscription_id
                     WHERE s.career_id = :career_id 

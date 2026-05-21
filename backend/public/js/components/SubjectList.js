@@ -23,6 +23,7 @@ export default {
                             <th>Nombre</th>
                             <th>Carrera</th>
                             <th>Año/Cuat.</th>
+                            <th>Duración/Horas</th>
                             <th>Programa</th>
                             <th>Última Modificación</th>
                             <th class="text-end">Acciones</th>
@@ -36,6 +37,10 @@ export default {
                             <td>
                                 <span class="badge bg-primary-subtle text-primary">{{ materia.academic_year }}º Año</span>
                                 <span class="badge bg-info-subtle text-info">{{ materia.quarter }}º Cuat.</span>
+                            </td>
+                            <td>
+                                <div class="small fw-semibold text-dark">{{ materia.duration || 'N/A' }}</div>
+                                <div class="small text-muted" v-if="materia.weekly_hours">{{ materia.weekly_hours }} hs/sem</div>
                             </td>
                             <td>
                                 <a :href="materia.program" target="_blank" v-if="materia.program && materia.program.length > 0">

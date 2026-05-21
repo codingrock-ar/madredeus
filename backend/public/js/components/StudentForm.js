@@ -308,6 +308,10 @@ export default {
                                                                     <option value="Libre">Libre</option>
                                                                     <option value="Desaprobado">Desaprobado</option>
                                                                 </select>
+                                                                <select class="form-select form-select-sm" v-model="sub.grade_type" style="width: 130px;">
+                                                                    <option value="Normal">Normal</option>
+                                                                    <option value="Homologada">Homologada</option>
+                                                                </select>
                                                             </div>
                                                         </div>
                                                         <div v-if="filterSubjects(ins.subjects, year, q).length === 0" class="text-muted extra-small italic">
@@ -873,7 +877,11 @@ export default {
 
                 const response = await fetch(endpoint, {
                     method: method,
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Authorization': `Bearer ${token}`, 
+                        'Content-Type': 'application/json',
+                        'X-User-Email': JSON.parse(localStorage.getItem('user'))?.email || ''
+                    },
                     body: JSON.stringify(this.student)
                 });
 
@@ -952,7 +960,8 @@ export default {
                             grades: ins.subjects.map(s => ({
                                 subject_id: s.id,
                                 grade: s.grade,
-                                status: s.grade_status
+                                status: s.grade_status,
+                                type: s.grade_type || 'Normal'
                             }))
                         };
                         promises.push(
@@ -1172,23 +1181,10 @@ export default {
                         <label class="form-label small fw-bold">Concepto</label>
                         <select id="swal-concept" class="form-select form-select-sm mb-3">
                             <option value="">Seleccione concepto...</option>
-                            ${conceptVal && !['Matrícula', 'Matrícula Anual', 'Cuota 1', 'Cuota 2', 'Cuota 3', 'Cuota 4', 'Cuota 5', 'Cuota 6', 'Cuota 7', 'Cuota 8', 'Cuota 9', 'Cuota 10', 'Intereses', 'Otros'].includes(conceptVal) ? `
+                            ${(this.metadata?.payment_concepts || []).map(c => `<option value="${c}" ${conceptVal === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            ${conceptVal && !(this.metadata?.payment_concepts || []).includes(conceptVal) ? `
                                 <option value="${conceptVal}" selected>${conceptVal}</option>
                             ` : ''}
-                            <option value="Matrícula" ${conceptVal === 'Matrícula' ? 'selected' : ''}>Matrícula</option>
-                            <option value="Matrícula Anual" ${conceptVal === 'Matrícula Anual' ? 'selected' : ''}>Matrícula Anual</option>
-                            <option value="Cuota 1" ${conceptVal === 'Cuota 1' ? 'selected' : ''}>Cuota 1</option>
-                            <option value="Cuota 2" ${conceptVal === 'Cuota 2' ? 'selected' : ''}>Cuota 2</option>
-                            <option value="Cuota 3" ${conceptVal === 'Cuota 3' ? 'selected' : ''}>Cuota 3</option>
-                            <option value="Cuota 4" ${conceptVal === 'Cuota 4' ? 'selected' : ''}>Cuota 4</option>
-                            <option value="Cuota 5" ${conceptVal === 'Cuota 5' ? 'selected' : ''}>Cuota 5</option>
-                            <option value="Cuota 6" ${conceptVal === 'Cuota 6' ? 'selected' : ''}>Cuota 6</option>
-                            <option value="Cuota 7" ${conceptVal === 'Cuota 7' ? 'selected' : ''}>Cuota 7</option>
-                            <option value="Cuota 8" ${conceptVal === 'Cuota 8' ? 'selected' : ''}>Cuota 8</option>
-                            <option value="Cuota 9" ${conceptVal === 'Cuota 9' ? 'selected' : ''}>Cuota 9</option>
-                            <option value="Cuota 10" ${conceptVal === 'Cuota 10' ? 'selected' : ''}>Cuota 10</option>
-                            <option value="Intereses" ${conceptVal === 'Intereses' ? 'selected' : ''}>Intereses</option>
-                            <option value="Otros" ${conceptVal === 'Otros' ? 'selected' : ''}>Otros</option>
                         </select>
 
                         <label class="form-label small fw-bold">Método</label>

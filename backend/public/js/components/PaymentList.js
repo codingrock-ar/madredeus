@@ -123,7 +123,9 @@ export default {
                                 <tr v-for="p in payments" :key="p.id">
                                     <td class="small">{{ formatDate(p.payment_date) }}</td>
                                     <td>
-                                        <div class="fw-bold small">{{ p.student_lastname }}, {{ p.student_name }}</div>
+                                        <div class="fw-bold small text-primary hover-underline" style="cursor: pointer;" @click="$router.push('/student/detail/' + p.student_id)">
+                                            {{ p.student_lastname }}, {{ p.student_name }}
+                                        </div>
                                         <div class="extra-small text-muted">{{ p.student_dni }}</div>
                                     </td>
                                     <td class="small">{{ p.concept }}</td>
@@ -201,7 +203,9 @@ export default {
                                 <tbody>
                                     <tr v-for="s in planilla" :key="s.student_id" class="small">
                                         <td class="ps-3">
-                                            <div class="fw-bold">{{ s.student_lastname }}, {{ s.student_name }}</div>
+                                            <div class="fw-bold text-primary hover-underline" style="cursor: pointer;" @click="$router.push('/student/detail/' + s.student_id)">
+                                                {{ s.student_lastname }}, {{ s.student_name }}
+                                            </div>
                                             <div class="extra-small text-muted">{{ s.student_dni }}</div>
                                         </td>
                                         <td>
@@ -262,7 +266,8 @@ export default {
                 end_date: today.toISOString().split('T')[0],
                 method: '',
                 cycle: today.getFullYear()
-            }
+            },
+            metadata: { payment_concepts: [], payment_types: [] }
         };
     },
     computed: {
@@ -292,6 +297,7 @@ export default {
         }
     },
     mounted() {
+        this.fetchMetadata();
         this.fetchCareers();
         this.fetchPayments();
     },
@@ -305,6 +311,17 @@ export default {
         }
     },
     methods: {
+        async fetchMetadata() {
+            try {
+                const response = await fetch(window.API_BASE + '/api/metadata/student-types');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.metadata = result.data;
+                }
+            } catch (error) {
+                console.error("Error fetching metadata:", error);
+            }
+        },
         async fetchCareers() {
             try {
                 const response = await fetch(window.API_BASE + '/api/careers');
@@ -450,17 +467,7 @@ export default {
                         <label class="form-label small fw-bold">Concepto</label>
                         <select id="swal-concept" class="form-select form-select-sm mb-3">
                             <option value="">Seleccione concepto...</option>
-                            <option value="Matrícula">Matrícula</option>
-                            <option value="Cuota 1">Cuota 1</option>
-                            <option value="Cuota 2">Cuota 2</option>
-                            <option value="Cuota 3">Cuota 3</option>
-                            <option value="Cuota 4">Cuota 4</option>
-                            <option value="Cuota 5">Cuota 5</option>
-                            <option value="Cuota 6">Cuota 6</option>
-                            <option value="Cuota 7">Cuota 7</option>
-                            <option value="Cuota 8">Cuota 8</option>
-                            <option value="Cuota 9">Cuota 9</option>
-                            <option value="Cuota 10">Cuota 10</option>
+                            ${(this.metadata?.payment_concepts || []).map(c => `<option value="${c}">${c}</option>`).join('')}
                         </select>
 
                         <label class="form-label small fw-bold">Método</label>
@@ -562,17 +569,8 @@ export default {
 
                         <label class="form-label small fw-bold">Concepto</label>
                         <select id="swal-concept" class="form-select form-select-sm mb-3">
-                            <option value="Matrícula" ${payment.concept === 'Matrícula' ? 'selected' : ''}>Matrícula</option>
-                            <option value="Cuota 1" ${payment.concept === 'Cuota 1' ? 'selected' : ''}>Cuota 1</option>
-                            <option value="Cuota 2" ${payment.concept === 'Cuota 2' ? 'selected' : ''}>Cuota 2</option>
-                            <option value="Cuota 3" ${payment.concept === 'Cuota 3' ? 'selected' : ''}>Cuota 3</option>
-                            <option value="Cuota 4" ${payment.concept === 'Cuota 4' ? 'selected' : ''}>Cuota 4</option>
-                            <option value="Cuota 5" ${payment.concept === 'Cuota 5' ? 'selected' : ''}>Cuota 5</option>
-                            <option value="Cuota 6" ${payment.concept === 'Cuota 6' ? 'selected' : ''}>Cuota 6</option>
-                            <option value="Cuota 7" ${payment.concept === 'Cuota 7' ? 'selected' : ''}>Cuota 7</option>
-                            <option value="Cuota 8" ${payment.concept === 'Cuota 8' ? 'selected' : ''}>Cuota 8</option>
-                            <option value="Cuota 9" ${payment.concept === 'Cuota 9' ? 'selected' : ''}>Cuota 9</option>
-                            <option value="Cuota 10" ${payment.concept === 'Cuota 10' ? 'selected' : ''}>Cuota 10</option>
+                            ${(this.metadata?.payment_concepts || []).map(c => `<option value="${c}" ${payment.concept === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            ${(this.metadata?.payment_concepts || []).includes(payment.concept) ? '' : `<option value="${payment.concept}" selected>${payment.concept}</option>`}
                         </select>
 
                         <label class="form-label small fw-bold">Método</label>

@@ -31,7 +31,9 @@ export default {
 
                         <div class="col-md-3">
                             <label class="form-label text-muted small fw-bold">Año <span class="text-danger" v-if="!isViewMode">*</span></label>
-                            <input type="number" class="form-control" v-model="subject.academic_year" :required="!isViewMode" :disabled="isViewMode" min="1" max="6">
+                            <select class="form-select" v-model="subject.academic_year" :required="!isViewMode" :disabled="isViewMode">
+                                <option v-for="year in academicYears" :key="year.id" :value="year.id">{{ year.name }}</option>
+                            </select>
                         </div>
 
                         <div class="col-md-3">
@@ -40,6 +42,16 @@ export default {
                                 <option :value="1">1º Cuatrimestre</option>
                                 <option :value="2">2º Cuatrimestre</option>
                             </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Duración</label>
+                            <input type="text" class="form-control" v-model="subject.duration" :disabled="isViewMode" placeholder="Ej: 5H, Anual, etc">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold">Carga Horaria</label>
+                            <input type="text" class="form-control" v-model="subject.weekly_hours" :disabled="isViewMode" placeholder="Ej: 6, 23, etc">
                         </div>
 
                         <div class="col-12 mt-4">
@@ -74,8 +86,9 @@ export default {
     `,
     data() {
         return {
-            subject: { name: '', program: '', career_id: '', academic_year: 1, quarter: 1 },
+            subject: { name: '', program: '', career_id: '', academic_year: 1, quarter: 1, duration: '', weekly_hours: '' },
             careers: [],
+            academicYears: [],
             loading: false,
             uploading: false,
             isViewMode: false,
@@ -94,6 +107,18 @@ export default {
                     this.careers = result.data;
                 }
             } catch (e) { console.error("Error fetching careers", e); }
+        },
+        async fetchMetadata() {
+            try {
+                const response = await fetch(window.API_BASE + '/api/metadata/student-types');
+                const result = await response.json();
+                if (response.ok && result.status === 'success') {
+                    this.academicYears = result.data.academic_years || [
+                        {id: 1, name: '1º Año'}, {id: 2, name: '2º Año'}, {id: 3, name: '3º Año'},
+                        {id: 4, name: '4º Año'}, {id: 5, name: '5º Año'}, {id: 6, name: '6º Año'}
+                    ];
+                }
+            } catch (e) { console.error("Error fetching metadata", e); }
         },
         async fetchSubject(id) {
             try {
@@ -183,6 +208,7 @@ export default {
         }
     },
     async mounted() {
+        await this.fetchMetadata();
         await this.fetchCareers();
         const id = this.$route.query.id;
         this.isViewMode = this.$route.query.view === '1';

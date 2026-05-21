@@ -50,6 +50,17 @@ class MetadataController {
             ],
             'sinigep_statuses' => ['Pendiente', 'Informado', 'Error', 'Rechazado'],
             'genders' => ['Masculino', 'Femenino', 'Otro', 'No especifica'],
+            'payment_types' => ['Matrícula', 'Cuota', 'Interés', 'Otro'],
+            'payment_concepts' => ['Matrícula', 'Matrícula Anual', 'Cuota 1', 'Cuota 2', 'Cuota 3', 'Cuota 4', 'Cuota 5', 'Cuota 6', 'Cuota 7', 'Cuota 8', 'Cuota 9', 'Cuota 10', 'Intereses', 'Otros'],
+            'exam_types' => ['Normal', 'Equivalencia', 'Libre', 'Promoción'],
+            'academic_years' => [
+                ['id' => 1, 'name' => '1º Año'],
+                ['id' => 2, 'name' => '2º Año'],
+                ['id' => 3, 'name' => '3º Año'],
+                ['id' => 4, 'name' => '4º Año'],
+                ['id' => 5, 'name' => '5º Año'],
+                ['id' => 6, 'name' => '6º Año']
+            ],
             'shifts' => $shifts,
             'commissions' => $commissions,
             'career_shifts' => $careerShifts,

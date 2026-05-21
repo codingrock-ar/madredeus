@@ -102,6 +102,19 @@ class StudentController {
         $success = $this->repository->create($data);
         
         if ($success) {
+            // Registrar auditoría de Alta
+            try {
+                $operatorEmail = $request->getHeaderLine('X-User-Email');
+                $auditRepo = new \App\Repositories\AuditLogRepositoryMySQL();
+                $auditRepo->logEvent(
+                    $operatorEmail,
+                    1, // Alta
+                    "Alta de Alumno: " . $data['lastname'] . ", " . $data['name'] . " (DNI: " . $data['dni'] . ")"
+                );
+            } catch (\Exception $e) {
+                error_log("Error al auditar creación de estudiante: " . $e->getMessage());
+            }
+
             // Mandar Notificaciones por Mail para inscripciones iniciales
             if (!empty($data['inscriptions']) && is_array($data['inscriptions'])) {
                 try {
@@ -140,9 +153,53 @@ class StudentController {
         }
         
         try {
+            // Obtener estado original antes de modificar
+            $original = $this->repository->getById($id);
+            
             $success = $this->repository->update($id, $data);
             
             if ($success) {
+                // Registrar auditoría de Modificación con desglose detallado
+                if ($original) {
+                    try {
+                        $cambios = [];
+                        $camposAComparar = [
+                            'dni' => 'DNI',
+                            'name' => 'Nombre',
+                            'lastname' => 'Apellido',
+                            'email' => 'Email',
+                            'phone' => 'Teléfono',
+                            'address' => 'Dirección',
+                            'city' => 'Localidad',
+                            'notes' => 'Notas',
+                            'gender' => 'Género',
+                            'sinigep_status' => 'Estado Sinigep',
+                        ];
+                        
+                        foreach ($camposAComparar as $campoKey => $campoLabel) {
+                            $originalVal = $original[$campoKey] ?? '';
+                            $newVal = $data[$campoKey] ?? '';
+                            
+                            if ($originalVal !== $newVal) {
+                                $cambios[] = "$campoLabel (" . ($originalVal ?: 'Vacío') . " -> " . ($newVal ?: 'Vacío') . ")";
+                            }
+                        }
+                        
+                        $descripcion = "Modificación de Alumno: " . $data['lastname'] . ", " . $data['name'] . " (DNI: " . $data['dni'] . ").";
+                        if (count($cambios) > 0) {
+                            $descripcion .= " Cambios: " . implode(', ', $cambios);
+                        } else {
+                            $descripcion .= " Sin cambios en los datos principales.";
+                        }
+                        
+                        $operatorEmail = $request->getHeaderLine('X-User-Email');
+                        $auditRepo = new \App\Repositories\AuditLogRepositoryMySQL();
+                        $auditRepo->logEvent($operatorEmail, 3, $descripcion); // Modificacion
+                    } catch (\Exception $e) {
+                        error_log("Error al auditar actualización de estudiante: " . $e->getMessage());
+                    }
+                }
+
                 $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Estudiante actualizado exitosamente']));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
             }
@@ -157,9 +214,33 @@ class StudentController {
     
     public function delete(Request $request, Response $response, $args) {
         $id = $args['id'];
+        
+        // Obtener datos antes de eliminar
+        $student = null;
+        try {
+            $student = $this->repository->getById($id);
+        } catch (\Exception $e) {
+            error_log("Error al obtener estudiante para auditar baja: " . $e->getMessage());
+        }
+        
         $success = $this->repository->delete($id);
         
         if ($success) {
+            // Registrar auditoría de Baja
+            if ($student) {
+                try {
+                    $operatorEmail = $request->getHeaderLine('X-User-Email');
+                    $auditRepo = new \App\Repositories\AuditLogRepositoryMySQL();
+                    $auditRepo->logEvent(
+                        $operatorEmail,
+                        2, // Baja
+                        "Baja de Alumno: " . $student['lastname'] . ", " . $student['name'] . " (DNI: " . $student['dni'] . ")"
+                    );
+                } catch (\Exception $e) {
+                    error_log("Error al auditar eliminación de estudiante: " . $e->getMessage());
+                }
+            }
+
             $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Estudiante eliminado']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
         }

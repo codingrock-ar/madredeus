@@ -344,7 +344,14 @@ export default {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(window.API_BASE + `/api/students/${id}`, { method: 'DELETE' });
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(window.API_BASE + `/api/students/${id}`, { 
+                        method: 'DELETE',
+                        headers: { 
+                            'Authorization': `Bearer ${token}`,
+                            'X-User-Email': JSON.parse(localStorage.getItem('user'))?.email || ''
+                        }
+                    });
                     const res = await response.json();
                     if (res.status === 'success') {
                         Swal.fire('¡Eliminado!', 'El estudiante ha sido eliminado.', 'success');
@@ -408,9 +415,14 @@ export default {
                 
                 const fullData = { ...student, ...updatedData };
                 
+                const token = localStorage.getItem('token');
                 const response = await fetch(window.API_BASE + `/api/students/${student.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-User-Email': JSON.parse(localStorage.getItem('user'))?.email || ''
+                    },
                     body: JSON.stringify(fullData)
                 });
                 

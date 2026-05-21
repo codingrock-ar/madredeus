@@ -8,9 +8,11 @@ use App\Repositories\PromotionRepositoryMySQL;
 
 class PromotionController {
     private $repository;
+    private $paymentRepository;
 
     public function __construct() {
         $this->repository = new PromotionRepositoryMySQL();
+        $this->paymentRepository = new \App\Repositories\PaymentRepositoryMySQL();
     }
 
     public function processPromotion(Request $request, Response $response, $args) {
@@ -80,9 +82,9 @@ class PromotionController {
                 $reasons[] = "Condición no es 'Regular' (Estado actual: {$student['status']})";
             }
 
-            // Placeholder for debt check
-            if ($checks['deudas']) {
-                // $reasons[] = "Posee deudas administrativas"; 
+            // Check for debt
+            if ($checks['deudas'] && $this->paymentRepository->hasPendingDebt($student['id'])) {
+                $reasons[] = "Posee deudas administrativas";
             }
 
             if (empty($reasons)) {

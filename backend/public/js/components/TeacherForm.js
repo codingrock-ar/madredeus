@@ -278,7 +278,12 @@ export default {
                                                 <td colspan="4" class="text-center py-4 text-muted small">No hay materias asignadas a este docente.</td>
                                             </tr>
                                             <tr v-for="s in assignedSubjects" :key="s.id" class="small">
-                                                <td class="ps-3 fw-bold">{{ s.name }}</td>
+                                                <td class="ps-3">
+                                                    <div class="fw-bold text-dark">{{ s.name }}</div>
+                                                    <div v-if="s.duration || s.weekly_hours" class="extra-small text-muted" style="font-size: 0.72rem;">
+                                                        {{ s.duration || '' }}<span v-if="s.duration && s.weekly_hours"> | </span>{{ s.weekly_hours ? s.weekly_hours + ' hs/sem' : '' }}
+                                                    </div>
+                                                </td>
                                                 <td class="text-muted">{{ s.career_title }}</td>
                                                 <td class="text-center">
                                                     <span class="badge bg-light text-dark border">{{ s.academic_year }}º Año</span>

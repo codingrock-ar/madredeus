@@ -300,6 +300,13 @@ export default {
         },
         selectSuggestion(student) {
             this.filters.search = `${student.lastname}, ${student.name}`;
+            // Limpiar otros filtros para asegurar que el alumno aparezca en la tabla
+            this.filters.career = '';
+            this.filters.commission = '';
+            this.filters.academic_cycle = '';
+            this.filters.shift = '';
+            this.filters.status = '';
+            
             this.showAutocomplete = false;
             this.fetchStudents();
         },

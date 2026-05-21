@@ -32,7 +32,7 @@ $app->add(function ($request, $handler) {
     $response = $handler->handle($request);
     return $response
             ->withHeader('Access-Control-Allow-Origin', '*')
-            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-User-Email')
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
 });
 
@@ -125,6 +125,18 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->post('/reminders/payment', \App\Controllers\ReminderController::class . ':payReminder');
     $group->post('/reminders/documentation', \App\Controllers\ReminderController::class . ':docReminder');
     $group->delete('/payments/{id}', \App\Controllers\PaymentController::class . ':delete');
+
+    // Auditoría / Bitácoras (Legacy)
+    $group->get('/audit-logs', \App\Controllers\AuditLogController::class . ':index');
+    $group->get('/audit-logs/filters', \App\Controllers\AuditLogController::class . ':getFilters');
+
+    // Gestión de Usuarios (solo admin)
+    $group->get('/users', \App\Controllers\UserController::class . ':list');
+    $group->post('/users', \App\Controllers\UserController::class . ':create');
+    $group->put('/users/{id}', \App\Controllers\UserController::class . ':update');
+    $group->put('/users/{id}/block', \App\Controllers\UserController::class . ':block');
+    $group->put('/users/{id}/deactivate', \App\Controllers\UserController::class . ':deactivate');
+    $group->put('/users/{id}/activate', \App\Controllers\UserController::class . ':activate');
 });
 
 // Ruta por defecto: Cargar la SPA (Frontend)

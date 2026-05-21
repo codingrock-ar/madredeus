@@ -19,11 +19,12 @@ class GradeRepositoryMySQL {
             $this->db->beginTransaction();
 
             $stmt = $this->db->prepare("
-                INSERT INTO student_grades (student_id, inscription_id, subject_id, grade, status)
-                VALUES (:student_id, :inscription_id, :subject_id, :grade, :status)
+                INSERT INTO student_grades (student_id, inscription_id, subject_id, grade, status, type)
+                VALUES (:student_id, :inscription_id, :subject_id, :grade, :status, :type)
                 ON DUPLICATE KEY UPDATE 
                 grade = VALUES(grade),
-                status = VALUES(status)
+                status = VALUES(status),
+                type = VALUES(type)
             ");
 
             foreach ($grades as $gradeData) {
@@ -33,7 +34,8 @@ class GradeRepositoryMySQL {
                     ':inscription_id' => $inscriptionId,
                     ':subject_id' => $gradeData['subject_id'],
                     ':grade' => $gradeData['grade'] ?? null,
-                    ':status' => $gradeData['status'] ?? null
+                    ':status' => $gradeData['status'] ?? null,
+                    ':type' => $gradeData['type'] ?? 'Normal'
                 ]);
             }
 

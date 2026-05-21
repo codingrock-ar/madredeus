@@ -108,6 +108,13 @@ class PaymentRepositoryMySQL {
         ];
     }
 
+    public function hasPendingDebt($studentId) {
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM payments WHERE student_id = :student_id AND status = 'Pendiente'");
+        $stmt->execute([':student_id' => $studentId]);
+        return ((int)$stmt->fetchColumn()) > 0;
+    }
+
     public function getById($id) {
         if (!$this->db) return null;
         $stmt = $this->db->prepare("SELECT * FROM payments WHERE id = :id");

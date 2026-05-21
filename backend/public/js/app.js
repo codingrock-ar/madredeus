@@ -23,6 +23,8 @@ import ScholarshipList from './components/ScholarshipList.js';
 import PaymentConfig from './components/PaymentConfig.js';
 import PaymentList from './components/PaymentList.js';
 import NotificationConfig from './components/NotificationConfig.js';
+import AuditLogList from './components/AuditLogList.js';
+import UserList from './components/UserList.js';
 
 const { createApp } = Vue;
 const { createRouter, createWebHashHistory } = VueRouter;
@@ -57,6 +59,8 @@ const routes = [
             { path: 'config/scholarships', component: ScholarshipList, meta: { title: 'Tipos de Beca' } },
             { path: 'config/payments', component: PaymentConfig, meta: { title: 'Aranceles e Intereses' } },
             { path: 'config/notifications', component: NotificationConfig, meta: { title: 'Plantillas de Correo' } },
+            { path: 'config/audit', component: AuditLogList, meta: { title: 'Bitácora de Auditoría', role: 'admin' } },
+            { path: 'config/users', component: UserList, meta: { title: 'Gestión de Usuarios', role: 'admin' } },
             { path: 'payments', component: PaymentList, meta: { title: 'Gestión de Pagos' } }
         ]
     }
@@ -68,20 +72,25 @@ const router = createRouter({
     routes
 });
 
-// Guardián de Navegación (Proteger rutas sin Token)
+// Guardián de Navegación (Proteger rutas sin Token y por rol)
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token');
-    
+    const userRaw = localStorage.getItem('user');
+    const user = userRaw ? JSON.parse(userRaw) : null;
+
     // Si la ruta no es pública y no hay logueo, echar al login
     if (!to.meta.public && !token) {
         next('/login');
-    } 
+    }
     // Si ya estas logueado y tratas de entrar a la landing de login
     else if (to.path === '/login' && token) {
         next('/dashboard');
-    } 
+    }
+    // Si la ruta requiere un rol específico y el usuario no lo tiene
+    else if (to.meta.role && (!user || user.role !== to.meta.role)) {
+        next('/dashboard');
+    }
     else {
-        // Todo en órden, procede.
         next();
     }
 });

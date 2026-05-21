@@ -20,22 +20,37 @@ class AuthController {
 
         $user = $this->repository->findByEmail($email);
 
-        if ($user && password_verify($password, $user['password_hash'])) {
-            // Simulando la creación de un Token JWT u otra lógica de sesión
-            $token = base64_encode(random_bytes(32)); 
-            
-            $res = [
-                'status' => 'success',
-                'message' => 'Login exitoso',
-                'token' => $token,
-                'user' => [
-                    'name' => $user['name'],
-                    'email' => $user['email']
-                ]
-            ];
-            
-            $response->getBody()->write(json_encode($res));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        if ($user) {
+            $hash = $user['password_hash'];
+            $valid = password_verify($password, $hash);
+
+            if ($valid) {
+                if (isset($user['is_active']) && !$user['is_active']) {
+                    $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Su cuenta está dada de baja. Contacte al administrador.']));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+                }
+
+                if (isset($user['is_blocked']) && $user['is_blocked']) {
+                    $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Su cuenta está bloqueada. Contacte al administrador.']));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+                }
+
+                $token = base64_encode(random_bytes(32));
+
+                $res = [
+                    'status'  => 'success',
+                    'message' => 'Login exitoso',
+                    'token'   => $token,
+                    'user'    => [
+                        'name'  => $user['name'],
+                        'email' => $user['email'],
+                        'role'  => $user['role'] ?? 'user'
+                    ]
+                ];
+
+                $response->getBody()->write(json_encode($res));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            }
         }
 
         $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Credenciales inválidas']));

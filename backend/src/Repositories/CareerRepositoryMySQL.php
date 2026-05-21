@@ -14,7 +14,7 @@ class CareerRepositoryMySQL {
 
     public function getAll() {
         if ($this->db) {
-            $stmt = $this->db->query("SELECT * FROM careers ORDER BY title ASC");
+            $stmt = $this->db->query("SELECT * FROM careers WHERE is_deleted = 0 ORDER BY title ASC");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         return [];
@@ -65,7 +65,7 @@ class CareerRepositoryMySQL {
     public function delete($id) {
         if (!$this->db) return false;
         
-        $stmt = $this->db->prepare("DELETE FROM careers WHERE id = :id");
+        $stmt = $this->db->prepare("UPDATE careers SET is_deleted = 1 WHERE id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         return $stmt->execute();
     }

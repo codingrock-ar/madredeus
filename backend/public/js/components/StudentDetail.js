@@ -263,10 +263,18 @@ export default {
                                                         <ul class="list-group list-group-flush small">
                                                             <li v-for="sub in filterSubjects(ins.subjects, year, q)" :key="sub.id" 
                                                                 class="list-group-item px-0 py-1 d-flex justify-content-between align-items-center border-dashed">
-                                                                <span>{{ sub.name }}</span>
-                                                                <span class="badge extra-small" :class="getGradeBadgeClass(sub.grade_status)">
-                                                                    {{ sub.grade ? sub.grade : (sub.grade_status || 'Pendiente') }}
-                                                                </span>
+                                                                <div class="d-flex flex-column">
+                                                                    <span class="fw-semibold text-dark">{{ sub.name }}</span>
+                                                                    <span v-if="sub.duration || sub.weekly_hours" class="extra-small text-muted" style="font-size: 0.72rem;">
+                                                                        {{ sub.duration || '' }}<span v-if="sub.duration && sub.weekly_hours"> | </span>{{ sub.weekly_hours ? sub.weekly_hours + ' hs/sem' : '' }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <span v-if="sub.grade_type === 'Homologada'" class="badge bg-soft-info text-info extra-small fw-semibold">Homologada</span>
+                                                                    <span class="badge extra-small" :class="getGradeBadgeClass(sub.grade_status)">
+                                                                        {{ sub.grade ? sub.grade : (sub.grade_status || 'Pendiente') }}
+                                                                    </span>
+                                                                </div>
                                                             </li>
                                                             <li v-if="filterSubjects(ins.subjects, year, q).length === 0" class="list-group-item px-0 py-1 text-muted extra-small italic">
                                                                 No hay materias asigancdas.
@@ -505,7 +513,8 @@ export default {
                 matricula_due_date: new Date().toISOString().split('T')[0],
                 start_cycle: 'Marzo',
                 quota_amount: 40000
-            }
+            },
+            metadata: { payment_concepts: [], payment_types: [] }
         }
     },
     computed: {
@@ -544,6 +553,7 @@ export default {
         }
     },
     async mounted() {
+        this.fetchMetadata();
         const id = this.$route.params.id;
         if (id) {
             await this.fetchStudent(id);
@@ -556,6 +566,17 @@ export default {
         }
     },
     methods: {
+        async fetchMetadata() {
+            try {
+                const response = await fetch(window.API_BASE + '/api/metadata/student-types');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.metadata = result.data;
+                }
+            } catch (error) {
+                console.error("Error fetching metadata:", error);
+            }
+        },
         getBadgeClass(status) {
             switch(status) {
                 case 'En Curso': return 'bg-soft-success text-success';
@@ -758,23 +779,10 @@ export default {
                         <label class="form-label small fw-bold">Concepto</label>
                         <select id="swal-concept" class="form-select form-select-sm mb-3">
                             <option value="">Seleccione concepto...</option>
-                            ${conceptVal && !['Matrícula', 'Matrícula Anual', 'Cuota 1', 'Cuota 2', 'Cuota 3', 'Cuota 4', 'Cuota 5', 'Cuota 6', 'Cuota 7', 'Cuota 8', 'Cuota 9', 'Cuota 10', 'Intereses', 'Otros'].includes(conceptVal) ? `
+                            ${(this.metadata?.payment_concepts || []).map(c => `<option value="${c}" ${conceptVal === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            ${conceptVal && !(this.metadata?.payment_concepts || []).includes(conceptVal) ? `
                                 <option value="${conceptVal}" selected>${conceptVal}</option>
                             ` : ''}
-                            <option value="Matrícula" ${conceptVal === 'Matrícula' ? 'selected' : ''}>Matrícula</option>
-                            <option value="Matrícula Anual" ${conceptVal === 'Matrícula Anual' ? 'selected' : ''}>Matrícula Anual</option>
-                            <option value="Cuota 1" ${conceptVal === 'Cuota 1' ? 'selected' : ''}>Cuota 1</option>
-                            <option value="Cuota 2" ${conceptVal === 'Cuota 2' ? 'selected' : ''}>Cuota 2</option>
-                            <option value="Cuota 3" ${conceptVal === 'Cuota 3' ? 'selected' : ''}>Cuota 3</option>
-                            <option value="Cuota 4" ${conceptVal === 'Cuota 4' ? 'selected' : ''}>Cuota 4</option>
-                            <option value="Cuota 5" ${conceptVal === 'Cuota 5' ? 'selected' : ''}>Cuota 5</option>
-                            <option value="Cuota 6" ${conceptVal === 'Cuota 6' ? 'selected' : ''}>Cuota 6</option>
-                            <option value="Cuota 7" ${conceptVal === 'Cuota 7' ? 'selected' : ''}>Cuota 7</option>
-                            <option value="Cuota 8" ${conceptVal === 'Cuota 8' ? 'selected' : ''}>Cuota 8</option>
-                            <option value="Cuota 9" ${conceptVal === 'Cuota 9' ? 'selected' : ''}>Cuota 9</option>
-                            <option value="Cuota 10" ${conceptVal === 'Cuota 10' ? 'selected' : ''}>Cuota 10</option>
-                            <option value="Intereses" ${conceptVal === 'Intereses' ? 'selected' : ''}>Intereses</option>
-                            <option value="Otros" ${conceptVal === 'Otros' ? 'selected' : ''}>Otros</option>
                         </select>
 
                         <label class="form-label small fw-bold">Método</label>

@@ -1,0 +1,1 @@
+ALTER TABLE student_grades ADD COLUMN type VARCHAR(20) NOT NULL DEFAULT 'Normal';

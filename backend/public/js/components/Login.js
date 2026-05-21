@@ -9,7 +9,7 @@ export default {
             </div>
             
             <form style="width: 100%;" @submit.prevent="login">
-                <input type="email" class="form-control-custom" placeholder="admin@madredeus.com" v-model="email" required>
+                <input type="text" class="form-control-custom" placeholder="Usuario o email" v-model="email" required>
                 
                 <!-- Contraseña con botón de Ver -->
                 <div class="position-relative mb-2">
@@ -53,10 +53,11 @@ export default {
             this.error = '';
             this.loading = true;
             try {
+                const loginEmail = this.email.includes('@') ? this.email : this.email + '@madredeus.com';
                 const response = await fetch(window.API_BASE + '/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: this.email, password: this.password })
+                    body: JSON.stringify({ email: loginEmail, password: this.password })
                 });
 
                 const result = await response.json();
@@ -89,8 +90,8 @@ export default {
             this.rememberMe = true;
         } else {
             // Valores por defecto para demo
-            this.email = 'admin@madredeus.com';
-            this.password = '123456';
+            this.email = '';
+            this.password = '';
         }
     }
 }

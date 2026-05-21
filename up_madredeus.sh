@@ -14,7 +14,7 @@ fi
 
 # Ir al directorio de Madredeus y levantar el stack
 echo "Levantando stack de Madredeus..."
-cd /home/ariel/teclab/madredeus && docker compose up -d
+cd /home/ariel/www/madredeus && docker compose up -d
 
 echo "------------------------------------------"
 echo "Proceso completado. Madredeus está arriba."

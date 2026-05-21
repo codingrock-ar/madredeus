@@ -72,7 +72,12 @@ export default {
                                         <div class="card-body p-0">
                                             <ul class="list-group list-group-flush small">
                                                 <li v-for="s in subjects" :key="s.id" class="list-group-item d-flex justify-content-between align-items-center py-2 border-light-subtle">
-                                                    <span>{{ s.name }}</span>
+                                                    <div class="d-flex flex-column">
+                                                        <span class="fw-semibold text-dark">{{ s.name }}</span>
+                                                        <span v-if="s.duration || s.weekly_hours" class="extra-small text-muted" style="font-size: 0.72rem;">
+                                                            {{ s.duration || '' }}<span v-if="s.duration && s.weekly_hours"> | </span>{{ s.weekly_hours ? s.weekly_hours + ' hs/sem' : '' }}
+                                                        </span>
+                                                    </div>
                                                     <div class="d-flex gap-2 align-items-center">
                                                         <i v-if="s.program" class="ph ph-file-pdf text-danger" title="Tiene programa"></i>
                                                         <button v-if="!isViewMode" type="button" class="btn btn-link btn-sm p-0 text-primary" @click="$router.push('/subject/form?id=' + s.id)">

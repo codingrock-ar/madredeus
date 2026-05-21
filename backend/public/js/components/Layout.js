@@ -121,6 +121,12 @@ export default {
                     <router-link to="/config/notifications" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-envelope-simple"></i> Notificaciones
                     </router-link>
+                    <router-link v-if="isAdmin" to="/config/audit" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-shield-checkered"></i> Auditoría
+                    </router-link>
+                    <router-link v-if="isAdmin" to="/config/users" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-users-three"></i> Usuarios
+                    </router-link>
                 </div>
 
                 <!-- Finanzas -->
@@ -193,6 +199,11 @@ export default {
         const u = localStorage.getItem('user');
         if (u) {
             this.user = JSON.parse(u);
+        }
+    },
+    computed: {
+        isAdmin() {
+            return this.user && this.user.role === 'admin';
         }
     },
     methods: {
