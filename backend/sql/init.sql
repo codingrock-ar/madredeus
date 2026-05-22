@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS madredeus_db;
-USE madredeus_db;
+-- CREATE DATABASE IF NOT EXISTS madredeus_db;
+-- USE madredeus_db;
 
 -- Tabla de Carreras
 CREATE TABLE IF NOT EXISTS careers (
