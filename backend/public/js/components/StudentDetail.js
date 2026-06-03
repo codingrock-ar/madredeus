@@ -257,9 +257,11 @@ export default {
                                         <div v-for="year in getYears(ins.subjects)" :key="year" class="mb-4">
                                             <div class="bg-light p-2 rounded mb-2 fw-bold small">AÑO {{ year }}</div>
                                             <div class="row g-3">
-                                                <div v-for="q in [1, 2]" :key="q" class="col-md-6">
+                                                <div v-for="q in [1, 2]" :key="q" :class="filterSubjects(ins.subjects, year, 2).length === 0 ? (q === 1 ? 'col-md-12' : 'd-none') : 'col-md-6'">
                                                     <div class="border rounded p-3 h-100">
-                                                        <h7 class="fw-bold d-block mb-2 text-muted extra-small text-uppercase">Cuatrimestre {{ q }}</h7>
+                                                        <h7 class="fw-bold d-block mb-2 text-muted extra-small text-uppercase">
+                                                            {{ filterSubjects(ins.subjects, year, 2).length === 0 ? 'Materias Anuales' : 'Cuatrimestre ' + q }}
+                                                        </h7>
                                                         <ul class="list-group list-group-flush small">
                                                             <li v-for="sub in filterSubjects(ins.subjects, year, q)" :key="sub.id" 
                                                                 class="list-group-item px-0 py-1 d-flex justify-content-between align-items-center border-dashed">
@@ -336,7 +338,7 @@ export default {
                                             <td>
                                                 <span :class="getDueDateClass(p.due_date, p.status)">
                                                     {{ formatDate(p.due_date) }}
-                                                    <span v-if="p.status === 'Pendiente'" class="d-block extra-small">{{ getDueDaysText(p.due_date) }}</span>
+                                                    <span v-if="p.status === 'Pendiente'" class="d-block extra-small">{{ getDueDaysText(p.due_date, p.type) }}</span>
                                                 </span>
                                             </td>
                                             <td class="fw-bold text-dark">
@@ -696,7 +698,7 @@ export default {
             if (this.isLate(dueDate)) return 'text-danger fw-bold';
             return 'text-success fw-bold';
         },
-        getDueDaysText(dueDate) {
+        getDueDaysText(dueDate, type = 'Cuota') {
             if (!dueDate) return '';
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -705,6 +707,7 @@ export default {
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
             
             if (diffDays < 0) {
+                if (type !== 'Cuota') return 'Vencido';
                 const dayOfMonth = today.getDate();
                 if (dayOfMonth <= 10) return 'Vencido (Período de gracia)';
                 if (dayOfMonth <= 20) return 'Vencido (1er Vencimiento)';

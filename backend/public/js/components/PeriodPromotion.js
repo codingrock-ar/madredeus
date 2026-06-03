@@ -46,32 +46,34 @@ export default {
         </div>
 
         <!-- CONFIGURACIÓN DE PROMOCIÓN -->
-        <div v-if="!showResults" class="card-modern p-4" :class="{'opacity-50': !shared.career}">
+        <div v-if="!showResults" class="card-modern p-4" :class="{'opacity-50': !shared.career && !individualStudent}">
             <div class="row g-4 align-items-center">
                 <!-- ORIGEN -->
                 <div class="col-md-5">
                     <div class="p-3 bg-light rounded border border-dashed">
                         <h6 class="fw-bold text-muted mb-3"><i class="ph ph-hash me-1"></i>ORIGEN (Actual)</h6>
-                        <div class="mb-3">
-                            <label class="form-label small">Periodo</label>
-                            <select class="form-select form-select-sm" v-model="source.period" @change="onSourcePeriodChange" :disabled="!shared.career">
-                                <option value="">Seleccione Periodo</option>
-                                <option v-for="p in sourceCareerPeriods" :key="p" :value="p">{{ displayPeriod(p) }}</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Turno</label>
-                            <select class="form-select form-select-sm" v-model="source.shift" @change="onSourceShiftChange" :disabled="!source.period">
-                                <option value="">Seleccione Turno</option>
-                                <option v-for="t in sourceShifts" :key="t" :value="t">{{ displayShift(t) }}</option>
-                            </select>
-                        </div>
-                        <div class="mb-0">
-                            <label class="form-label small">Comisión</label>
-                            <select class="form-select form-select-sm" v-model="source.commission" :disabled="!source.shift">
-                                <option value="">Seleccione Comisión</option>
-                                <option v-for="co in sourceCommissions" :key="co" :value="co">{{ co }}</option>
-                            </select>
+                        <div class="row">
+                            <div class="col-4">
+                                <label class="form-label small">Periodo</label>
+                                <select class="form-select form-select-sm" v-model="source.period" @change="onSourcePeriodChange" :disabled="!shared.career && !individualStudent">
+                                    <option value="">Sel...</option>
+                                    <option v-for="p in sourceCareerPeriods" :key="p" :value="p">{{ displayPeriod(p) }}</option>
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small">Turno</label>
+                                <select class="form-select form-select-sm" v-model="source.shift" @change="onSourceShiftChange" :disabled="!source.period && !individualStudent">
+                                    <option value="">Sel...</option>
+                                    <option v-for="t in sourceShifts" :key="t" :value="t">{{ displayShift(t) }}</option>
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small">Comisión</label>
+                                <select class="form-select form-select-sm" v-model="source.commission" :disabled="!source.shift && !individualStudent">
+                                    <option value="">Sel...</option>
+                                    <option v-for="co in sourceCommissions" :key="co" :value="co">{{ co }}</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -269,9 +271,13 @@ export default {
         sourceCommissions() { return this.mappings.shift_commissions[this.source.shift] || this.mappings.shift_commissions['default'] || []; },
         targetCommissions() { return this.mappings.shift_commissions[this.target.shift] || this.mappings.shift_commissions['default'] || []; },
         isSourceComplete() {
+            if (this.individualStudent) return true;
             return this.shared.career && this.source.period && this.source.shift && this.source.commission;
         },
         isValid() {
+            if (this.individualStudent) {
+                return this.target.period && this.target.shift && this.target.commission;
+            }
             return this.isSourceComplete && 
                    this.target.period && this.target.shift && this.target.commission &&
                    !this.isPeriodDisabled(this.target.period);
@@ -336,6 +342,7 @@ export default {
         onTargetShiftChange() { this.target.commission = ''; },
         
         isPeriodDisabled(p) {
+            if (this.individualStudent) return false;
             if (!this.source.period) return true;
             const allPeriods = this.sourceCareerPeriods;
             const sourceIdx = allPeriods.indexOf(this.source.period.toString());
@@ -343,11 +350,16 @@ export default {
             return targetIdx <= sourceIdx;
         },
         resetIndividual() {
+            const studentId = this.$route.query.student_id;
             this.individualStudent = null;
             this.filters.student_id = null;
             this.shared.career = '';
             this.source = { shift: '', commission: '', period: '' };
-            this.$router.push('/students/promotion');
+            if (studentId) {
+                this.$router.push('/student/detail/' + studentId);
+            } else {
+                this.$router.push('/students/promotion');
+            }
         },
         async fetchData() {
             try {

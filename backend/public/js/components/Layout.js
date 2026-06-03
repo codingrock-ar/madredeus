@@ -141,6 +141,9 @@ export default {
                     <router-link to="/payments" class="nav-link ps-4 submenu-link" active-class="active">
                         <i class="ph ph-hand-coins"></i> Cobranzas / Pagos
                     </router-link>
+                    <router-link to="/payments/import" class="nav-link ps-4 submenu-link" active-class="active">
+                        <i class="ph ph-upload-simple"></i> Importar masivamente
+                    </router-link>
                 </div>
             </nav>
         </div>

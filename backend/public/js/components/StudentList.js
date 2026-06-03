@@ -47,6 +47,9 @@ export default {
                     <button class="btn btn-outline-secondary shadow-sm" @click="printList">
                         <i class="ph ph-printer me-1"></i> Imprimir
                     </button>
+                    <router-link to="/poc-payments" class="btn btn-warning shadow-sm text-dark fw-bold">
+                        <i class="ph ph-flask me-1"></i> POC Pagos
+                    </router-link>
                     <button class="btn btn-primary shadow-sm" @click="goToForm()">
                         <i class="ph ph-plus-circle me-1"></i> Nuevo Alumno
                     </button>
@@ -125,6 +128,8 @@ export default {
                             <th scope="col">Nombre</th>
                             <th scope="col">Carrera</th>
                             <th scope="col">Periodo</th>
+                            <th scope="col" width="40" title="Año de Cursada">A.</th>
+                            <th scope="col" width="40" title="Cuatrimestre">C.</th>
                             <th scope="col">Comisión</th>
                             <th scope="col">Turno</th>
                             <th scope="col">Estado</th>
@@ -133,13 +138,13 @@ export default {
                     </thead>
                     <tbody>
                         <tr v-if="loading">
-                            <td colspan="11" class="text-center py-5">
+                            <td colspan="13" class="text-center py-5">
                                 <div class="spinner-border text-primary" role="status"></div>
                                 <div class="mt-2 text-muted">Cargando datos...</div>
                             </td>
                         </tr>
                         <tr v-else-if="students.length === 0">
-                            <td colspan="11" class="text-center py-5 text-muted">
+                            <td colspan="13" class="text-center py-5 text-muted">
                                 No se encontraron estudiantes con los filtros seleccionados.
                             </td>
                         </tr>
@@ -156,6 +161,8 @@ export default {
                             <td>{{ student.name }}</td>
                             <td class="small">{{ student.career }}</td>
                             <td class="text-center">{{ student.academic_cycle || '-' }}</td>
+                            <td class="text-center small fw-bold">{{ getStudyYear(student.academic_cycle, student.career) }}</td>
+                            <td class="text-center small fw-bold">{{ getStudyQuarter(student.academic_cycle, student.career) }}</td>
                             <td class="text-center small">{{ student.commission }}</td>
                             <td class="text-center small">{{ student.shift }}</td>
                             <td>
@@ -169,16 +176,13 @@ export default {
                                     <router-link :to="'/student/detail/' + student.id" class="btn btn-icon btn-sm btn-outline-info" title="Ver detalle">
                                         <i class="ph ph-eye"></i>
                                     </router-link>
-                                    <router-link :to="'/students/inscription?id=' + student.id" class="btn btn-icon btn-sm btn-outline-warning" title="Editar Inscripción">
-                                        <i class="ph ph-user-plus"></i>
-                                    </router-link>
                                     <router-link :to="'/student/form?id=' + student.id" class="btn btn-icon btn-sm btn-outline-primary" title="Editar">
                                         <i class="ph ph-pencil-simple"></i>
                                     </router-link>
-                                    <router-link :to="'/student/detail/' + student.id + '?tab=grades'" class="btn btn-icon btn-sm btn-outline-success" title="Calificaciones">
+                                    <router-link :to="'/student/detail/' + student.id + '?tab=grades'" class="btn btn-icon btn-sm btn-outline-warning" title="Calificaciones">
                                         <i class="ph ph-graduation-cap"></i>
                                     </router-link>
-                                    <router-link :to="'/student/detail/' + student.id + '?tab=payments&action=collect'" class="btn btn-icon btn-sm btn-outline-dark" title="Cobrar">
+                                    <router-link :to="'/student/detail/' + student.id + '?tab=payments'" class="btn btn-icon btn-sm btn-outline-dark" title="Cobrar">
                                         <i class="ph ph-currency-dollar"></i>
                                     </router-link>
                                     <router-link :to="'/students/promotion?student_id=' + student.id" class="btn btn-icon btn-sm btn-outline-secondary" title="Promocionar">
@@ -390,13 +394,43 @@ export default {
                     this.meta = result.meta;
                 }
             } catch (error) {
-                console.error("Error al cargar estudiantes:", error);
+                console.error("Error cargando alumnos:", error);
             } finally {
                 this.loading = false;
                 this.$nextTick(() => {
                     this.initTooltips();
                 });
             }
+        },
+        getStudyYear(cycle, career) {
+            if (!cycle) return '-';
+            let strCycle = String(cycle);
+            let match = strCycle.match(/\d+/);
+            if (!match) return '-';
+            let num = parseInt(match[0], 10);
+            
+            if (num > 100) return '-'; // Es un año calendario (ej 2024)
+            
+            if (career && career.toUpperCase().includes('LAFERRERE')) {
+                return num + 'º';
+            }
+            
+            return Math.ceil(num / 2) + 'º';
+        },
+        getStudyQuarter(cycle, career) {
+            if (!cycle) return '-';
+            let strCycle = String(cycle);
+            let match = strCycle.match(/\d+/);
+            if (!match) return '-';
+            let num = parseInt(match[0], 10);
+            
+            if (num > 100) return '-'; // Es un año calendario (ej 2024)
+            
+            if (career && career.toUpperCase().includes('LAFERRERE')) {
+                return 'Anual';
+            }
+            
+            return (num % 2 === 0 ? 2 : 1) + 'º';
         },
         async fetchCareers() {
             try {

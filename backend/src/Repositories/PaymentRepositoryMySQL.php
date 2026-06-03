@@ -269,10 +269,52 @@ class PaymentRepositoryMySQL {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function updateConfig($key, $value) {
+    public function updateConfig($key, $value, $userId = null) {
         if (!$this->db) return false;
-        $stmt = $this->db->prepare("UPDATE payment_configs SET config_value = :value WHERE config_key = :key");
-        return $stmt->execute([':key' => $key, ':value' => $value]);
+        
+        try {
+            $this->db->beginTransaction();
+            
+            // Get old value
+            $stmtOld = $this->db->prepare("SELECT config_value FROM payment_configs WHERE config_key = :key");
+            $stmtOld->execute([':key' => $key]);
+            $oldValue = $stmtOld->fetchColumn();
+            
+            // Update
+            $stmt = $this->db->prepare("UPDATE payment_configs SET config_value = :value WHERE config_key = :key");
+            $success = $stmt->execute([':key' => $key, ':value' => $value]);
+            
+            // Log history
+            if ($success && $oldValue !== false && (float)$oldValue !== (float)$value) {
+                $histStmt = $this->db->prepare("
+                    INSERT INTO payment_config_history (config_key, old_value, new_value, changed_by_user_id)
+                    VALUES (:key, :old, :new, :user)
+                ");
+                $histStmt->execute([
+                    ':key' => $key,
+                    ':old' => $oldValue,
+                    ':new' => $value,
+                    ':user' => $userId
+                ]);
+            }
+            
+            $this->db->commit();
+            return $success;
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            return false;
+        }
+    }
+    
+    public function getConfigHistory() {
+        if (!$this->db) return [];
+        $sql = "
+            SELECT h.*, u.name as user_name, u.email as user_email
+            FROM payment_config_history h
+            LEFT JOIN users u ON h.changed_by_user_id = u.id
+            ORDER BY h.created_at DESC
+        ";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function generatePaymentPlan($studentId, array $planData, $cancelExisting = true, $careerId = null) {

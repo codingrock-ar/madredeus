@@ -72,6 +72,50 @@ export default {
                 </div>
             </div>
 
+            <div class="mt-4">
+                <button class="btn btn-outline-secondary btn-sm" @click="toggleHistory">
+                    <i class="ph ph-clock-counter-clockwise me-1"></i>
+                    {{ showHistory ? 'Ocultar Historial de Variaciones' : 'Ver Historial de Variaciones' }}
+                </button>
+            </div>
+
+            <!-- History Section -->
+            <div v-if="showHistory" class="mt-3 fade-in card border-0 shadow-sm">
+                <div class="card-header bg-light fw-bold small text-uppercase">
+                    Historial de Variaciones de Precios
+                </div>
+                <div class="card-body p-0">
+                    <div v-if="loadingHistory" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    </div>
+                    <div v-else-if="history.length === 0" class="text-center py-3 text-muted small">
+                        No hay registros históricos todavía.
+                    </div>
+                    <div v-else class="table-responsive">
+                        <table class="table table-sm table-hover mb-0 align-middle">
+                            <thead class="table-light extra-small">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Concepto</th>
+                                    <th>Valor Anterior</th>
+                                    <th>Valor Nuevo</th>
+                                    <th>Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody class="small">
+                                <tr v-for="h in history" :key="h.id">
+                                    <td>{{ formatDate(h.created_at) }}</td>
+                                    <td><span class="badge bg-secondary">{{ h.config_key }}</span></td>
+                                    <td>{{ h.old_value ? '$' + h.old_value : '-' }}</td>
+                                    <td class="fw-bold text-success">\${{ h.new_value }}</td>
+                                    <td>{{ h.user_name || 'Sistema/Legacy' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div v-if="successMessage" class="alert alert-success mt-4 fade-in">
                 <i class="ph ph-check-circle me-2"></i>{{ successMessage }}
             </div>
@@ -88,10 +132,38 @@ export default {
             configs: {},
             rawConfigs: [],
             successMessage: '',
-            error: ''
+            error: '',
+            showHistory: false,
+            loadingHistory: false,
+            history: []
         }
     },
     methods: {
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return d.toLocaleString('es-AR', {dateStyle: 'short', timeStyle: 'short'});
+        },
+        async toggleHistory() {
+            this.showHistory = !this.showHistory;
+            if (this.showHistory && this.history.length === 0) {
+                this.fetchHistory();
+            }
+        },
+        async fetchHistory() {
+            this.loadingHistory = true;
+            try {
+                const response = await fetch(window.API_BASE + '/api/config/payments/history');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.history = result.data;
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.loadingHistory = false;
+            }
+        },
         async fetchConfigs() {
             try {
                 const response = await fetch(window.API_BASE + '/api/config/payments');
@@ -116,16 +188,23 @@ export default {
             this.successMessage = '';
             
             try {
+                const token = localStorage.getItem('token');
                 const promises = Object.keys(this.configs).map(key => {
                     return fetch(window.API_BASE + '/api/config/payments', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}` 
+                        },
                         body: JSON.stringify({ config_key: key, config_value: this.configs[key] })
                     });
                 });
 
                 await Promise.all(promises);
                 this.successMessage = 'Configuración guardada exitosamente';
+                if (this.showHistory) {
+                    this.fetchHistory();
+                }
                 setTimeout(() => this.successMessage = '', 3000);
             } catch (e) {
                 this.error = 'Error al guardar algunos cambios';

@@ -178,8 +178,18 @@ export default {
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label small">Ciclo Lectivo</label>
-                                            <input type="text" class="form-control form-control-sm" v-model="ins.academic_cycle" placeholder="Ej: 2024">
+                                            <label class="form-label small">Periodo Actual</label>
+                                            <select class="form-select form-select-sm" v-model="ins.academic_cycle">
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option>
+                                                <option value="Egresó">Egresó</option>
+                                                <option value="Finalizó Cursada">Finalizó Cursada</option>
+                                                <option value="Abandono">Abandono</option>
+                                            </select>
                                         </div>
                                         <div class="col-md-3">
                                             <label class="form-label small">Comisión</label>
@@ -294,9 +304,11 @@ export default {
                                         <div v-for="year in getYears(ins.subjects)" :key="year" class="mb-4">
                                             <div class="bg-light p-2 rounded mb-2 fw-bold small">AÑO {{ year }}</div>
                                             <div class="row g-3">
-                                                <div v-for="q in [1, 2]" :key="q" class="col-md-6">
+                                                <div v-for="q in [1, 2]" :key="q" :class="filterSubjects(ins.subjects, year, 2).length === 0 ? (q === 1 ? 'col-md-12' : 'd-none') : 'col-md-6'">
                                                     <div class="border rounded p-3 h-100">
-                                                        <h7 class="fw-bold d-block mb-2 text-muted extra-small text-uppercase">Cuatrimestre {{ q }}</h7>
+                                                        <h7 class="fw-bold d-block mb-2 text-muted extra-small text-uppercase">
+                                                            {{ filterSubjects(ins.subjects, year, 2).length === 0 ? 'Materias Anuales' : 'Cuatrimestre ' + q }}
+                                                        </h7>
                                                         <div v-for="sub in filterSubjects(ins.subjects, year, q)" :key="sub.id" class="mb-2 pb-2 border-bottom border-dashed last-border-none">
                                                             <div class="small fw-bold mb-1">{{ sub.name }}</div>
                                                             <div class="d-flex gap-2">

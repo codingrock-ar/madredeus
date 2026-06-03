@@ -25,6 +25,8 @@ import PaymentList from './components/PaymentList.js';
 import NotificationConfig from './components/NotificationConfig.js';
 import AuditLogList from './components/AuditLogList.js';
 import UserList from './components/UserList.js';
+import PaymentImport from './components/PaymentImport.js';
+import PaymentStatusPOC from './components/PaymentStatusPOC.js';
 
 const { createApp } = Vue;
 const { createRouter, createWebHashHistory } = VueRouter;
@@ -61,7 +63,9 @@ const routes = [
             { path: 'config/notifications', component: NotificationConfig, meta: { title: 'Plantillas de Correo' } },
             { path: 'config/audit', component: AuditLogList, meta: { title: 'Bitácora de Auditoría', role: 'admin' } },
             { path: 'config/users', component: UserList, meta: { title: 'Gestión de Usuarios', role: 'admin' } },
-            { path: 'payments', component: PaymentList, meta: { title: 'Gestión de Pagos' } }
+            { path: 'payments', component: PaymentList, meta: { title: 'Gestión de Pagos' } },
+            { path: 'payments/import', component: PaymentImport, meta: { title: 'Importar Pagos Masivos' } },
+            { path: 'poc-payments', component: PaymentStatusPOC, meta: { title: 'Estado de Pagos (POC)' } }
         ]
     }
 ];

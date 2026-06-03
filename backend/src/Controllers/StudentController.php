@@ -408,6 +408,61 @@ class StudentController {
             ->withHeader('Expires', '0');
     }
 
+    public function exportSinigepExcel(Request $request, Response $response, $args) {
+        $queryParams = $request->getQueryParams();
+        
+        $filters = [
+            'career' => $queryParams['career'] ?? null,
+            'academic_cycle' => $queryParams['periodo'] ?? null,
+            'status' => $queryParams['status'] ?? null,
+            'gender' => $queryParams['sexo'] ?? null,
+            'sinigep_status' => $queryParams['sinigep_status'] ?? null,
+            'name' => $queryParams['name'] ?? null
+        ];
+
+        $students = $this->repository->getForReport($filters);
+
+        $output = fopen('php://temp', 'r+');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        fputcsv($output, [
+            'Carrera', 'a-o', 'turno', 'Periodo Actual', 'comisi-n', 'Apellido', 
+            'Nombre', 'TIPo Doc.', 'DNI', 'Genero', 'Lugar Nacimiento', 'Condicion', 'Nivel Educacion'
+        ], ';');
+
+        foreach ($students as $student) {
+            $nivelEdu = trim(($student['max_education_level'] ?? '') . ' ' . (($student['education_finished'] === 'Si') ? 'Completo' : (($student['education_finished'] === 'No') ? 'Incompleto' : '')));
+            fputcsv($output, [
+                $student['career'],
+                $student['academic_year'],
+                $student['shift'],
+                $student['academic_cycle'],
+                $student['commission'],
+                $student['lastname'],
+                $student['name'],
+                $student['document_type'] ?: 'DNI',
+                $student['dni'],
+                $student['gender'],
+                $student['nationality'] ?: $student['birth_place'],
+                $student['career_status'] ?: $student['status'],
+                $nivelEdu
+            ], ';');
+        }
+
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        $response->getBody()->write($csv);
+
+        $filename = 'sinigep_export_' . date('Ymd') . '.csv';
+        return $response
+            ->withHeader('Content-Type', 'text/csv; charset=utf-8')
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('Expires', '0');
+    }
+
     public function sendLegajoEmail(Request $request, Response $response, $args) {
         $id = $args['id'];
         $student = $this->repository->getById($id);

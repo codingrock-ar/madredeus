@@ -44,6 +44,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
         $studentGroup->get('', \App\Controllers\StudentController::class . ':index');
         $studentGroup->get('/report', \App\Controllers\StudentController::class . ':report');
         $studentGroup->get('/export', \App\Controllers\StudentController::class . ':exportExcel');
+        $studentGroup->get('/export-sinigep', \App\Controllers\StudentController::class . ':exportSinigepExcel');
         $studentGroup->get('/autocomplete', \App\Controllers\StudentController::class . ':autocomplete');
         $studentGroup->get('/{id}', \App\Controllers\StudentController::class . ':show');
         $studentGroup->post('', \App\Controllers\StudentController::class . ':create');
@@ -104,6 +105,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->delete('/config/scholarships/{id}', \App\Controllers\ScholarshipController::class . ':delete');
 
     $group->get('/config/payments', \App\Controllers\PaymentController::class . ':getConfigs');
+    $group->get('/config/payments/history', \App\Controllers\PaymentController::class . ':getConfigHistory');
     $group->post('/config/payments', \App\Controllers\PaymentController::class . ':updateConfig');
     
     $group->get('/config/notifications', \App\Controllers\NotificationController::class . ':getTemplates');
@@ -114,6 +116,8 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
 
     // Pagos
     $group->get('/payments', \App\Controllers\PaymentController::class . ':index');
+    $group->post('/payments/import/headers', \App\Controllers\PaymentController::class . ':importHeaders');
+    $group->post('/payments/import/process', \App\Controllers\PaymentController::class . ':importProcess');
     $group->get('/payments/collection-planilla', \App\Controllers\PaymentController::class . ':collectionPlanilla');
     $group->get('/payments/last-execution', \App\Controllers\PaymentController::class . ':lastExecution');
     $group->get('/payments/{id}', \App\Controllers\PaymentController::class . ':show');

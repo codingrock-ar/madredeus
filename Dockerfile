@@ -3,8 +3,9 @@ FROM php:8.2-apache
 # Habilitar mod_rewrite para Slim
 RUN a2enmod rewrite
 
-# Instalar extensiones necesarias para MySQL
-RUN docker-php-ext-install pdo pdo_mysql
+# Instalar librerías y extensiones necesarias para MySQL, GD y ZIP
+RUN apt-get update && apt-get install -y libpng-dev libzip-dev zip zlib1g-dev \
+    && docker-php-ext-install pdo pdo_mysql gd zip
 
 # Configurar el DocumentRoot a public/
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
