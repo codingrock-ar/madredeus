@@ -58,3 +58,11 @@ Acceso a la base de datos desde el host:
 ```bash
 mysql -h 127.0.0.1 -u root -psecret madredeus_db
 ```
+
+### Tareas Programadas (Cron Jobs)
+Para automatizar la generación de intereses por mora (Interés 1 a partir del día 11, e Interés 2 a partir del día 21), debes añadir el siguiente comando al `crontab` de tu servidor de producción para que se ejecute todos los días de madrugada (ej. a las 02:00 AM):
+
+```bash
+0 2 * * * cd /ruta/absoluta/al/proyecto/backend && php cron/generate_interests.php >> /var/log/madredeus_intereses.log 2>&1
+```
+*(Asegúrate de reemplazar `/ruta/absoluta/al/proyecto` por la ruta real donde esté alojado tu sistema).*

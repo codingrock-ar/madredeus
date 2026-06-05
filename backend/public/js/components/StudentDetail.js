@@ -1,4 +1,7 @@
+import StudentPaymentTimeline from './StudentPaymentTimeline.js';
+
 export default {
+    components: { StudentPaymentTimeline },
     template: `
     <div class="fade-in" v-if="student">
         <!-- Breadcrumb / Header -->
@@ -312,6 +315,12 @@ export default {
                                     </button>
                                 </div>
                             </div>
+
+                            <div class="mb-4">
+                                <StudentPaymentTimeline :payments="student.payments || []" />
+                            </div>
+
+                            <h6 class="fw-bold mb-3 mt-4">Detalle de Movimientos</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm align-middle small">
                                     <thead class="table-light">
@@ -324,8 +333,8 @@ export default {
                                             <th class="text-end">Acciones</th>
                                         </tr>
                                     </thead>
-                                    <tbody v-if="student.payments && student.payments.length > 0">
-                                        <tr v-for="p in student.payments" :key="p.id">
+                                    <tbody v-if="paginatedPayments.length > 0">
+                                        <tr v-for="p in paginatedPayments" :key="p.id">
                                             <td class="text-center">
                                                 <i v-if="p.type === 'Matrícula'" class="ph ph-star text-warning fs-5" title="Matrícula"></i>
                                                 <i v-else-if="p.type === 'Cuota'" class="ph ph-calendar text-primary fs-5" title="Cuota"></i>
@@ -333,7 +342,7 @@ export default {
                                             </td>
                                             <td>
                                                 <span class="fw-bold">{{ p.concept }}</span>
-                                                <div v-if="p.details" class="extra-small text-muted">{{ formatDetails(p.details) }}</div>
+                                                <div v-if="formatDetails(p.details)" class="extra-small text-muted">{{ formatDetails(p.details) }}</div>
                                             </td>
                                             <td>
                                                 <span :class="getDueDateClass(p.due_date, p.status)">
@@ -343,9 +352,6 @@ export default {
                                             </td>
                                             <td class="fw-bold text-dark">
                                                 $ {{ formatCurrency(p.amount, p) }}
-                                                <div v-if="p.status === 'Pendiente' && isLate(p.due_date)" class="extra-small text-danger fw-bold mt-1">
-                                                    <i class="ph ph-warning-circle"></i> Incluye recargo
-                                                </div>
                                             </td>
 
                                             <td>
@@ -378,6 +384,28 @@ export default {
                                 </table>
                             </div>
 
+                            <!-- Paginación -->
+                            <div v-if="totalPages >= 1" class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="small text-muted">
+                                    Mostrando {{ (currentPage - 1) * itemsPerPage + 1 }} a 
+                                    {{ Math.min(currentPage * itemsPerPage, sortedPayments.length) }} 
+                                    de {{ sortedPayments.length }} pagos
+                                </span>
+                                <nav>
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                                            <a class="page-link" href="#" @click.prevent="currentPage > 1 ? currentPage-- : null">Anterior</a>
+                                        </li>
+                                        <li class="page-item" v-for="page in totalPages" :key="page" :class="{ active: currentPage === page }">
+                                            <a class="page-link" href="#" @click.prevent="currentPage = page">{{ page }}</a>
+                                        </li>
+                                        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                                            <a class="page-link" href="#" @click.prevent="currentPage < totalPages ? currentPage++ : null">Siguiente</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+
                             <!-- MODAL: MATRICULAR (GENERAR PLAN) -->
                             <div v-if="generatePlanModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
                                 <div class="modal-dialog modal-md modal-dialog-centered">
@@ -388,7 +416,7 @@ export default {
                                         </div>
                                         <div class="modal-body p-4">
                                             <div class="alert alert-warning small mb-4">
-                                                <i class="ph ph-warning-circle me-2"></i><strong>Atención:</strong> Al matricular, se anularán los pagos pendientes actuales del alumno para evitar duplicidad de deuda.
+                                                <i class="ph ph-warning-circle me-2"></i><strong>Atención:</strong> Se agregarán las cuotas del año correspondiente. Revise si ya existen para evitar duplicarlas.
                                             </div>
 
                                             <div class="row g-3">
@@ -505,6 +533,8 @@ export default {
             activeTab: this.$route.query.tab || 'general',
             generatePlanModal: false,
             generatingPlan: false,
+            currentPage: 1,
+            itemsPerPage: 20,
             paymentConfigs: {
                 quota_base_amount: 40000,
                 matricula_base_amount: 50000
@@ -552,6 +582,23 @@ export default {
                 seen.add(ins.status);
                 return true;
             });
+        },
+        sortedPayments() {
+            if (!this.student || !this.student.payments) return [];
+            return [...this.student.payments].sort((a, b) => {
+                let dA = new Date(a.due_date || 0).getTime();
+                let dB = new Date(b.due_date || 0).getTime();
+                if (isNaN(dA)) dA = 0;
+                if (isNaN(dB)) dB = 0;
+                return dB - dA;
+            });
+        },
+        totalPages() {
+            return Math.ceil(this.sortedPayments.length / this.itemsPerPage);
+        },
+        paginatedPayments() {
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            return this.sortedPayments.slice(start, start + this.itemsPerPage);
         }
     },
     async mounted() {
@@ -649,38 +696,29 @@ export default {
         },
         formatCurrency(amount, p = null) {
             let total = parseFloat(amount);
-            if (p && p.status === 'Pendiente' && this.isLate(p.due_date)) {
-                const today = new Date();
-                const due = new Date(p.due_date);
-                
-                // Si estamos en un mes posterior al vencimiento, ya aplica el máximo (20%)
-                // Si estamos en el mismo mes, depende del día
-                const isSameMonth = (today.getFullYear() === due.getFullYear() && today.getMonth() === due.getMonth());
-                const day = today.getDate();
-
-                if (!isSameMonth || day > 20) {
-                    total *= 1.20; // 20% de interés
-                } else if (day > 10) {
-                    total *= 1.10; // 10% de interés
-                }
+            if (p && p.status === 'Pagado' && parseFloat(p.paid_amount) > 0) {
+                total = parseFloat(p.paid_amount);
             }
             return total.toLocaleString('es-AR', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
         },
-        hasInterest(p) {
-            if (!p || p.status !== 'Pendiente' || !this.isLate(p.due_date)) return false;
-            const today = new Date();
-            const due = new Date(p.due_date);
-            const isSameMonth = (today.getFullYear() === due.getFullYear() && today.getMonth() === due.getMonth());
-            const day = today.getDate();
-            return !isSameMonth || day > 10;
-        },
         formatDetails(details) {
+            if (!details) return '';
             try {
                 const parsed = JSON.parse(details);
-                return Array.isArray(parsed) ? parsed.join(', ') : details;
+                if (Array.isArray(parsed)) {
+                    return parsed.join(', ');
+                }
+                if (typeof parsed === 'object' && parsed !== null) {
+                    // Ocultar llaves internas del sistema
+                    delete parsed.parent_payment_id;
+                    const keys = Object.keys(parsed);
+                    if (keys.length === 0) return '';
+                    return Object.entries(parsed).map(([k, v]) => `${k}: ${v}`).join(', ');
+                }
+                return details;
             } catch (e) {
                 return details;
             }
@@ -780,13 +818,10 @@ export default {
                         </div>
 
                         <label class="form-label small fw-bold">Concepto</label>
-                        <select id="swal-concept" class="form-select form-select-sm mb-3">
-                            <option value="">Seleccione concepto...</option>
-                            ${(this.metadata?.payment_concepts || []).map(c => `<option value="${c}" ${conceptVal === c ? 'selected' : ''}>${c}</option>`).join('')}
-                            ${conceptVal && !(this.metadata?.payment_concepts || []).includes(conceptVal) ? `
-                                <option value="${conceptVal}" selected>${conceptVal}</option>
-                            ` : ''}
-                        </select>
+                        <input type="text" id="swal-concept" class="form-control form-control-sm mb-3" list="concept-options" placeholder="Escriba o seleccione un concepto..." value="${conceptVal}">
+                        <datalist id="concept-options">
+                            ${(this.metadata?.payment_concepts || []).map(c => `<option value="${c}"></option>`).join('')}
+                        </datalist>
 
                         <label class="form-label small fw-bold">Método</label>
                         <select id="swal-method" class="form-select form-select-sm mb-3">
@@ -906,7 +941,7 @@ export default {
             
             const confirmed = await Swal.fire({
                 title: '¿Confirmar matriculación?',
-                text: "Se generará el plan de pagos y se anularán los pendientes anteriores.",
+                text: "Se generarán y agregarán las nuevas cuotas al estado de cuenta del alumno. Tenga cuidado de no generar el plan dos veces para no duplicarlas.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, matricular',

@@ -115,10 +115,12 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->post('/promotion', \App\Controllers\PromotionController::class . ':processPromotion');
 
     // Pagos
+    $group->post('/payments/generate-interests', \App\Controllers\PaymentController::class . ':generateInterests');
     $group->get('/payments', \App\Controllers\PaymentController::class . ':index');
     $group->post('/payments/import/headers', \App\Controllers\PaymentController::class . ':importHeaders');
     $group->post('/payments/import/process', \App\Controllers\PaymentController::class . ':importProcess');
     $group->get('/payments/collection-planilla', \App\Controllers\PaymentController::class . ':collectionPlanilla');
+    $group->get('/payments/course-status', \App\Controllers\PaymentController::class . ':courseStatus');
     $group->get('/payments/last-execution', \App\Controllers\PaymentController::class . ':lastExecution');
     $group->get('/payments/{id}', \App\Controllers\PaymentController::class . ':show');
     $group->post('/payments', \App\Controllers\PaymentController::class . ':create');

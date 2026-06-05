@@ -5,3 +5,6 @@ backend/public/.htaccess
 vendor/
 node_modules/
 *.log
+
+initial_data/bkp*
+backend/sql/*.gz

@@ -47,9 +47,7 @@ export default {
                     <button class="btn btn-outline-secondary shadow-sm" @click="printList">
                         <i class="ph ph-printer me-1"></i> Imprimir
                     </button>
-                    <router-link to="/poc-payments" class="btn btn-warning shadow-sm text-dark fw-bold">
-                        <i class="ph ph-flask me-1"></i> POC Pagos
-                    </router-link>
+
                     <button class="btn btn-primary shadow-sm" @click="goToForm()">
                         <i class="ph ph-plus-circle me-1"></i> Nuevo Alumno
                     </button>

@@ -242,6 +242,72 @@ class PaymentRepositoryMySQL {
         return $results;
     }
 
+    public function getCourseStatus(array $filters = []) {
+        if (!$this->db) return [];
+
+        $where = ["1=1"];
+        $params = [];
+
+        if (!empty($filters['career_id'])) {
+            $where[] = "sci.career_id = :career_id";
+            $params[':career_id'] = $filters['career_id'];
+        }
+
+        if (!empty($filters['commission'])) {
+            $where[] = "sci.commission = :commission";
+            $params[':commission'] = $filters['commission'];
+        }
+        
+        if (!empty($filters['search'])) {
+            $searchTerm = $filters['search'];
+            $searchSql = "(s.name LIKE :search OR s.lastname LIKE :search OR s.dni LIKE :search";
+            
+            $cleanSearch = preg_replace('/[^0-9]/', '', $searchTerm);
+            if (!empty($cleanSearch) && $cleanSearch !== $searchTerm) {
+                $searchSql .= " OR s.dni LIKE :clean_search";
+                $params[':clean_search'] = "%" . $cleanSearch . "%";
+            }
+            $searchSql .= ")";
+            $where[] = $searchSql;
+            $params[':search'] = "%" . $searchTerm . "%";
+        }
+
+        $whereSql = implode(" AND ", $where);
+
+        $sql = "SELECT 
+                    s.id as id,
+                    s.name as name,
+                    s.lastname as lastname,
+                    s.dni as dni,
+                    c.title as career,
+                    sci.commission as commission
+                FROM students s
+                JOIN student_career_inscriptions sci ON s.id = sci.student_id
+                JOIN careers c ON sci.career_id = c.id
+                WHERE $whereSql
+                ORDER BY s.lastname, s.name";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $cycle = $filters['cycle'] ?? date('Y');
+        
+        $paymentsSql = "SELECT * FROM payments WHERE student_id = :student_id AND (YEAR(due_date) = :cycle OR YEAR(due_date) = :prev_cycle)";
+        $paymentsStmt = $this->db->prepare($paymentsSql);
+
+        foreach ($students as &$student) {
+            $paymentsStmt->execute([
+                ':student_id' => $student['id'],
+                ':cycle' => $cycle,
+                ':prev_cycle' => $cycle - 1
+            ]);
+            $student['payments'] = $paymentsStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        return $students;
+    }
+
     public function getLastExecutionDate() {
         if (!$this->db) return null;
         $stmt = $this->db->query("SELECT MAX(created_at) FROM payments WHERE status != 'Anulado'");
@@ -323,11 +389,8 @@ class PaymentRepositoryMySQL {
         try {
             $this->db->beginTransaction();
             
-            // Optionally cancel existing pending payments
-            if ($cancelExisting) {
-                $this->cancelPendingByStudent($studentId, $careerId);
-            }
-
+            // (Se eliminó la anulación automática de cuotas anteriores a pedido del usuario)
+            
             $sql = "INSERT INTO payments (student_id, career_id, amount, base_amount, due_date, type, concept, status, details) 
                     VALUES (:student_id, :career_id, :amount, :base_amount, :due_date, :type, :concept, 'Pendiente', :details)";
             
@@ -385,5 +448,85 @@ class PaymentRepositoryMySQL {
         if (!$this->db) return false;
         $stmt = $this->db->prepare("UPDATE payments SET last_notified = CURRENT_TIMESTAMP WHERE id = :id");
         return $stmt->execute([':id' => $id]);
+    }
+    public function generateInterests() {
+        if (!$this->db) return ['total_generated' => 0];
+
+        $today = date('Y-m-d');
+        $generated = 0;
+
+        try {
+            $this->db->beginTransaction();
+
+            $sql = "SELECT p.* FROM payments p
+                    JOIN students s ON p.student_id = s.id
+                    WHERE p.status = 'Pendiente' 
+                    AND (p.type = 'Cuota' OR p.concept LIKE 'Cuota%')
+                    AND p.base_amount > 0
+                    AND p.due_date <= :today
+                    AND s.status NOT IN ('Abandono', 'Egresado')";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':today' => $today]);
+            $quotas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $insertSql = "INSERT INTO payments (student_id, career_id, amount, base_amount, due_date, type, concept, status, details) 
+                          VALUES (:student_id, :career_id, :amount, :amount, :due_date, :type, :concept, 'Pendiente', :details)";
+            $insertStmt = $this->db->prepare($insertSql);
+
+            foreach ($quotas as $quota) {
+                $dueDate = new \DateTime($quota['due_date']);
+                $todayDate = new \DateTime($today);
+                
+                $isSameMonth = ($todayDate->format('Y-m') === $dueDate->format('Y-m'));
+                $dayOfMonth = (int)$todayDate->format('d');
+                
+                $shouldHaveInt1 = (!$isSameMonth || $dayOfMonth > 10);
+                $shouldHaveInt2 = (!$isSameMonth || $dayOfMonth > 20);
+
+                $interest1Concept = "Interés 1 - " . $quota['concept'];
+                $interest2Concept = "Interés 2 - " . $quota['concept'];
+
+                if ($shouldHaveInt1) {
+                    $check1 = $this->db->prepare("SELECT id FROM payments WHERE student_id = :sid AND type = 'Interés 1' AND MONTH(due_date) = MONTH(:dd) AND YEAR(due_date) = YEAR(:dd)");
+                    $check1->execute([':sid' => $quota['student_id'], ':dd' => $quota['due_date']]);
+                    if (!$check1->fetchColumn()) {
+                        $insertStmt->execute([
+                            ':student_id' => $quota['student_id'],
+                            ':career_id' => $quota['career_id'],
+                            ':amount' => $quota['base_amount'] * 0.10,
+                            ':due_date' => $quota['due_date'],
+                            ':type' => 'Interés 1',
+                            ':concept' => $interest1Concept,
+                            ':details' => json_encode(['parent_payment_id' => $quota['id']])
+                        ]);
+                        $generated++;
+                    }
+                }
+
+                if ($shouldHaveInt2) {
+                    $check2 = $this->db->prepare("SELECT id FROM payments WHERE student_id = :sid AND type = 'Interés 2' AND MONTH(due_date) = MONTH(:dd) AND YEAR(due_date) = YEAR(:dd)");
+                    $check2->execute([':sid' => $quota['student_id'], ':dd' => $quota['due_date']]);
+                    if (!$check2->fetchColumn()) {
+                        $insertStmt->execute([
+                            ':student_id' => $quota['student_id'],
+                            ':career_id' => $quota['career_id'],
+                            ':amount' => $quota['base_amount'] * 0.10,
+                            ':due_date' => $quota['due_date'],
+                            ':type' => 'Interés 2',
+                            ':concept' => $interest2Concept,
+                            ':details' => json_encode(['parent_payment_id' => $quota['id']])
+                        ]);
+                        $generated++;
+                    }
+                }
+            }
+
+            $this->db->commit();
+            return ['total_generated' => $generated];
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            error_log("Error generating interests: " . $e->getMessage());
+            return ['total_generated' => 0, 'error' => $e->getMessage()];
+        }
     }
 }

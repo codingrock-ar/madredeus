@@ -104,6 +104,24 @@ class PaymentController {
         return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
     }
 
+    public function courseStatus(Request $request, Response $response, $args) {
+        $queryParams = $request->getQueryParams();
+        $filters = [
+            'career_id' => $queryParams['career_id'] ?? null,
+            'cycle' => $queryParams['cycle'] ?? date('Y'),
+            'commission' => $queryParams['commission'] ?? null,
+            'search' => $queryParams['search'] ?? null
+        ];
+
+        $data = $this->repository->getCourseStatus($filters);
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'data' => $data
+        ]));
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+
     public function lastExecution(Request $request, Response $response, $args) {
         $date = $this->repository->getLastExecutionDate();
         $response->getBody()->write(json_encode(['status' => 'success', 'date' => $date]));
@@ -410,5 +428,19 @@ class PaymentController {
             $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error procesando archivo: ' . $e->getMessage()]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
+    }
+    public function generateInterests(Request $request, Response $response, $args) {
+        $result = $this->repository->generateInterests();
+        if (isset($result['error'])) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Error al generar intereses: ' . $result['error']]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+        
+        $response->getBody()->write(json_encode([
+            'status' => 'success', 
+            'message' => 'Intereses generados correctamente',
+            'total_generated' => $result['total_generated']
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
     }
 }
