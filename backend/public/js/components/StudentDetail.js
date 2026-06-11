@@ -48,6 +48,7 @@ export default {
                     </div>
                     <h5 class="fw-bold mb-1 text-uppercase">{{ student.lastname }}, {{ student.name }}</h5>
                     <p class="text-muted small mb-2">ID: #{{ student.id }} | DNI: {{ student.dni }}</p>
+                    <p v-if="student.created_by" class="text-muted extra-small mb-2"><i class="ph ph-user-circle"></i> Legajo creado por: {{ student.created_by }}</p>
                     <div class="d-flex flex-wrap justify-content-center gap-1 mb-2">
                         <span v-for="ins in uniqueBadges" :key="'badge-'+ins.status" 
                               class="badge" :class="getBadgeClass(ins.status)">
@@ -139,6 +140,10 @@ export default {
                                             <label class="text-muted d-block small mb-0">Estado Civil</label>
                                             <span class="fw-bold">{{ student.civil_status || '-' }}</span>
                                         </div>
+                                        <div class="col-md-4 mb-3" v-if="student.created_by">
+                                            <label class="text-muted d-block small mb-0">Registrado Por:</label>
+                                            <span class="fw-bold text-primary">{{ student.created_by }}</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -164,12 +169,7 @@ export default {
                                     </div>
                                 </div>
 
-                                <div class="col-12 mt-4" v-if="student.notes">
-                                    <h6 class="fw-bold mb-3 border-bottom pb-2">Observaciones Generales</h6>
-                                    <div class="bg-light p-3 rounded small italic text-muted">
-                                        {{ student.notes }}
-                                    </div>
-                                </div>
+
                             </div>
                         </div>
 
@@ -230,6 +230,9 @@ export default {
                                                     <label class="text-muted d-block extra-small mb-0">Libro/Folio</label>
                                                     <span class="small">{{ ins.book || '-' }}/{{ ins.folio || '-' }}</span>
                                                 </div>
+                                                <div class="col-12 mt-2 pt-2 border-top border-dashed" v-if="ins.created_by">
+                                                    <span class="text-muted extra-small"><i class="ph ph-user me-1"></i>Inscripto por: <span class="fw-bold text-primary">{{ ins.created_by }}</span></span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -238,12 +241,7 @@ export default {
                                         No hay inscripciones registradas.
                                     </div>
                                 </div>
-                                <div class="col-12" v-if="student.found_institution">
-                                    <h6 class="fw-bold mb-3 border-bottom pb-2">¿Cómo nos conoció?</h6>
-                                    <div class="small p-2 bg-light rounded text-muted">
-                                        {{ formatFound(student.found_institution) }}
-                                    </div>
-                                </div>
+
                             </div>
                         </div>
 
@@ -509,6 +507,18 @@ export default {
                                             <i :class="student.req_vaccines ? 'ph-check-circle text-success' : 'ph-x-circle text-danger'" class="ph fs-5"></i>
                                         </li>
                                     </ul>
+                                </div>
+                                <div class="col-12 mt-4" v-if="student.found_institution && student.found_institution !== '[]' && student.found_institution !== 'null'">
+                                    <h6 class="fw-bold mb-3 border-bottom pb-2">¿Cómo nos conoció?</h6>
+                                    <div class="small p-2 bg-light rounded text-muted">
+                                        {{ formatFound(student.found_institution) }}
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-4" v-if="student.notes">
+                                    <h6 class="fw-bold mb-3 border-bottom pb-2">Observaciones Generales</h6>
+                                    <div class="bg-light p-3 rounded small italic text-muted">
+                                        {{ student.notes }}
+                                    </div>
                                 </div>
                             </div>
                         </div>

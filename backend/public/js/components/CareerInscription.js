@@ -49,11 +49,15 @@ export default {
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">Ciclo Lectivo</label>
+                    <label class="form-label small fw-bold">Período Actual</label>
                     <select class="form-select" v-model="form.academic_cycle" required>
-                        <option v-for="cycle in cycles" :key="cycle.id" :value="cycle.name">
-                            {{ cycle.name }}
-                        </option>
+                        <option value="0">0 (Ciclo Inicial)</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
                     </select>
                 </div>
 
@@ -137,7 +141,7 @@ export default {
             cycles: [],
             form: {
                 career_id: '',
-                academic_cycle: '',
+                academic_cycle: '0',
                 shift: 'TM',
                 commission: 'A',
                 inscription_date: new Date().toISOString().split('T')[0],
@@ -240,9 +244,16 @@ export default {
 
             this.loading = true;
             try {
+                const token = localStorage.getItem('token');
+                const userEmail = JSON.parse(localStorage.getItem('user'))?.email || '';
+                
                 const res = await fetch(window.API_BASE + `/api/students/${this.selectedStudent.id}/inscriptions`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-User-Email': userEmail
+                    },
                     body: JSON.stringify(this.form)
                 });
                 const data = await res.json();
@@ -262,9 +273,13 @@ export default {
             if (!this.selectedStudent) return;
             this.sendingReminder = true;
             try {
+                const token = localStorage.getItem('token');
                 const response = await fetch(window.API_BASE + '/api/reminders/documentation', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ student_id: this.selectedStudent.id })
                 });
                 const result = await response.json();

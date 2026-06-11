@@ -24,13 +24,20 @@ class PromotionRepositoryMySQL {
                   AND sci.commission = :commission 
                   AND sci.academic_cycle = :period";
         
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
+        $params = [
             ':career' => $criteria['career'],
             ':shift' => $criteria['shift'],
             ':commission' => $criteria['commission'],
             ':period' => $criteria['period']
-        ]);
+        ];
+
+        if (!empty($criteria['id'])) {
+            $sql .= " AND s.id = :student_id";
+            $params[':student_id'] = $criteria['id'];
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

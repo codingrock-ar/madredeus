@@ -87,6 +87,25 @@ class PromotionController {
                 $reasons[] = "Posee deudas administrativas";
             }
 
+            // Check matricula if advancing from period 0
+            if ($source['period'] === '0' && $target['period'] !== '0' && $target['period'] !== '') {
+                $hasPaidMatricula = false;
+                $paymentsRes = $this->paymentRepository->getAll(['student_id' => $student['id']]);
+                if (!empty($paymentsRes['data'])) {
+                    foreach ($paymentsRes['data'] as $payment) {
+                        if (stripos($payment['concept'], 'matrícula') !== false || stripos($payment['concept'], 'matricula') !== false) {
+                            if ($payment['status'] === 'Pagado') {
+                                $hasPaidMatricula = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!$hasPaidMatricula) {
+                    $reasons[] = "No registra una Matrícula pagada";
+                }
+            }
+
             if (empty($reasons)) {
                 $promoted[] = $student;
             } else {

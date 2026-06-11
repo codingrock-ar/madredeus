@@ -180,6 +180,7 @@ export default {
                                         <div class="col-md-3">
                                             <label class="form-label small">Periodo Actual</label>
                                             <select class="form-select form-select-sm" v-model="ins.academic_cycle">
+                                                <option value="0">0 (Ciclo Inicial)</option>
                                                 <option value="1">1</option>
                                                 <option value="2">2</option>
                                                 <option value="3">3</option>
@@ -933,8 +934,8 @@ export default {
             this.student.inscriptions.push({
                 career_id: null,
                 career_title: '',
-                academic_cycle: '',
-                commission: '',
+                academic_cycle: '0',
+                commission: 'A',
                 shift: 'TM',
                 status: 'En Curso',
                 book: '',

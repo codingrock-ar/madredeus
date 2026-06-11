@@ -135,7 +135,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $insFilters[] = "sci2.status = :status";
             $insParams[':status'] = $params['status'];
         }
-        if (!empty($params['academic_cycle'])) {
+        if (isset($params['academic_cycle']) && $params['academic_cycle'] !== '') {
             $insFilters[] = "sci2.academic_cycle = :academic_cycle";
             $insParams[':academic_cycle'] = $params['academic_cycle'];
         }
@@ -224,7 +224,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         req_degree_photocopy_obs, req_two_photos, req_psychophysical, req_psychophysical_obs, req_vaccines,
                         req_vaccines_obs, req_student_book, req_final_degree, req_final_degree_obs, found_institution, notes,
                         gender, sinigep_status,
-                        file_dni, file_degree, file_psychophysical, file_vaccines, file_student_book, file_final_degree
+                        file_dni, file_degree, file_psychophysical, file_vaccines, file_student_book, file_final_degree, created_by
                     ) VALUES (
                         :dni, :name, :lastname, :email, :birthdate, :nationality, :phone, :address, :city,
                         :photo, :birth_place, :document_type, :civil_status, :max_education_level, :education_finished, :degree_obtained,
@@ -233,7 +233,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         :req_degree_photocopy_obs, :req_two_photos, :req_psychophysical, :req_psychophysical_obs, :req_vaccines,
                         :req_vaccines_obs, :req_student_book, :req_final_degree, :req_final_degree_obs, :found_institution, :notes,
                         :gender, :sinigep_status,
-                        :file_dni, :file_degree, :file_psychophysical, :file_vaccines, :file_student_book, :file_final_degree
+                        :file_dni, :file_degree, :file_psychophysical, :file_vaccines, :file_student_book, :file_final_degree, :created_by
                     )";
             
             $stmt = $this->db->prepare($sql);
@@ -259,8 +259,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
 
                     if ($careerId) {
                         $stmt = $this->db->prepare("
-                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date)
-                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW())
+                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date, created_by)
+                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW(), :created_by)
                         ");
                         $stmt->execute([
                             ':student_id' => $studentId,
@@ -270,7 +270,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':academic_cycle' => $ins['academic_cycle'] ?? null,
                             ':status' => $ins['status'] ?? 'En Curso',
                             ':book' => $ins['book'] ?? null,
-                            ':folio' => $ins['folio'] ?? null
+                            ':folio' => $ins['folio'] ?? null,
+                            ':created_by' => $ins['created_by'] ?? null
                         ]);
 
                         if (($ins['status'] ?? '') === 'Abandono') {
@@ -287,8 +288,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                 
                 if ($career) {
                     $stmt = $this->db->prepare("
-                        INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date)
-                        VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW())
+                        INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date, created_by)
+                        VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW(), :created_by)
                     ");
                     $stmt->execute([
                         ':student_id' => $studentId,
@@ -298,7 +299,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         ':academic_cycle' => $data['academic_cycle'] ?? null,
                         ':status' => $data['status'] ?? 'En Curso',
                         ':book' => $data['book'] ?? null,
-                        ':folio' => $data['folio'] ?? null
+                        ':folio' => $data['folio'] ?? null,
+                        ':created_by' => $data['created_by'] ?? null
                     ]);
 
                     if (($data['status'] ?? '') === 'Abandono') {
@@ -313,7 +315,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         } catch (\Exception $e) {
             $this->db->rollBack();
             error_log("Error creating student: " . $e->getMessage());
-            return false;
+            throw $e;
         }
     }
 
@@ -369,8 +371,9 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                     $stmt = $this->db->prepare("DELETE FROM student_career_inscriptions WHERE student_id = ? AND id NOT IN ($placeholders)");
                     $stmt->execute(array_merge([$id], $providedInsIds));
                 } else {
-                    // If an empty array is provided, it might mean remove all (caution)
-                    // But usually there should be at least one. If empty, we might skip deletion or handle as "re-create all"
+                    // If an empty array is provided, it means all inscriptions were removed
+                    $stmt = $this->db->prepare("DELETE FROM student_career_inscriptions WHERE student_id = ?");
+                    $stmt->execute([$id]);
                 }
 
                 foreach ($data['inscriptions'] as $ins) {
@@ -415,8 +418,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                     } else {
                         // Create new
                         $stmt = $this->db->prepare("
-                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date)
-                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW())
+                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date, created_by)
+                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW(), :created_by)
                         ");
                         $stmt->execute([
                             ':student_id' => $id,
@@ -426,7 +429,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':academic_cycle' => $ins['academic_cycle'] ?? null,
                             ':status' => $ins['status'] ?? 'En Curso',
                             ':book' => $ins['book'] ?? null,
-                            ':folio' => $ins['folio'] ?? null
+                            ':folio' => $ins['folio'] ?? null,
+                            ':created_by' => $ins['created_by'] ?? null
                         ]);
 
                         if (($ins['status'] ?? '') === 'Abandono') {
@@ -465,8 +469,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                         ]);
                     } else {
                         $stmt = $this->db->prepare("
-                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date)
-                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW())
+                            INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, book, folio, inscription_date, created_by)
+                            VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :book, :folio, NOW(), :created_by)
                         ");
                         $stmt->execute([
                             ':student_id' => $id,
@@ -476,7 +480,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                             ':academic_cycle' => $data['academic_cycle'] ?? null,
                             ':status' => $status,
                             ':book' => $data['book'] ?? null,
-                            ':folio' => $data['folio'] ?? null
+                            ':folio' => $data['folio'] ?? null,
+                            ':created_by' => $data['created_by'] ?? null
                         ]);
                     }
 
@@ -542,7 +547,7 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                 $sqlParams[':ins_career'] = $filters['career'];
             }
         }
-        if (!empty($filters['academic_cycle'])) {
+        if (isset($filters['academic_cycle']) && $filters['academic_cycle'] !== '') {
             $insFilters[] = "sci2.academic_cycle = :ins_academic_cycle";
             $sqlParams[':ins_academic_cycle'] = $filters['academic_cycle'];
         }
@@ -674,7 +679,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             ':file_psychophysical' => $data['file_psychophysical'] ?? null,
             ':file_vaccines' => $data['file_vaccines'] ?? null,
             ':file_student_book' => $data['file_student_book'] ?? null,
-            ':file_final_degree' => $data['file_final_degree'] ?? null
+            ':file_final_degree' => $data['file_final_degree'] ?? null,
+            ':created_by' => $data['created_by'] ?? null
         ];
     }
 
@@ -721,8 +727,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, inscription_date)
-                VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :inscription_date)
+                INSERT INTO student_career_inscriptions (student_id, career_id, commission, shift, academic_cycle, status, inscription_date, created_by)
+                VALUES (:student_id, :career_id, :commission, :shift, :academic_cycle, :status, :inscription_date, :created_by)
             ");
             
             return $stmt->execute([
@@ -732,7 +738,8 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
                 ':shift' => $data['shift'] ?? null,
                 ':academic_cycle' => $data['academic_cycle'] ?? null,
                 ':status' => $data['status'] ?? 'En Curso',
-                ':inscription_date' => $data['inscription_date'] ?? date('Y-m-d H:i:s')
+                ':inscription_date' => $data['inscription_date'] ?? date('Y-m-d H:i:s'),
+                ':created_by' => $data['created_by'] ?? null
             ]);
         } catch (\Exception $e) {
             error_log("Error in inscribeCareer: " . $e->getMessage());

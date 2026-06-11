@@ -257,7 +257,7 @@ export default {
             years = Math.max(years, 1);
             
             const totalPeriods = years * 2;
-            const periods = [];
+            const periods = ['0'];
             for (let i = 1; i <= totalPeriods; i++) {
                 periods.push(i.toString());
             }
@@ -293,6 +293,7 @@ export default {
     methods: {
         displayPeriod(p) {
             if (p === 'Egresó' || p === 'Finalizó Cursada') return p;
+            if (p === '0' || p === 0) return '0 (Ciclo Inicial)';
             return `Período ${p}`;
         },
         displayShift(s) {
@@ -314,10 +315,16 @@ export default {
                 if (result.status === 'success') {
                     const s = result.data;
                     this.individualStudent = s;
-                    this.shared.career = s.career;
-                    this.source.period = s.academic_cycle;
-                    this.source.shift = s.shift;
-                    this.source.commission = s.commission;
+                    
+                    let activeIns = null;
+                    if (s.inscriptions && s.inscriptions.length > 0) {
+                        activeIns = s.inscriptions.find(i => i.status !== 'Finalizó Cursada' && i.status !== 'Egresado') || s.inscriptions[0];
+                    }
+
+                    this.shared.career = activeIns ? activeIns.career_title : (s.career || '');
+                    this.source.period = activeIns ? activeIns.academic_cycle : (s.academic_cycle || '');
+                    this.source.shift = activeIns ? activeIns.shift : (s.shift || '');
+                    this.source.commission = activeIns ? activeIns.commission : (s.commission || '');
                     this.filters.student_id = id;
                     
                     // Pre-seleccionar destino por defecto (siguiente periodo)

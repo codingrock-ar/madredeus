@@ -94,53 +94,78 @@ class StudentController {
     public function create(Request $request, Response $response, $args) {
         $data = json_decode((string)$request->getBody(), true);
         
+        $operatorEmail = $request->getHeaderLine('X-User-Email');
+        $data['created_by'] = $operatorEmail;
+        if (!empty($data['inscriptions']) && is_array($data['inscriptions'])) {
+            foreach ($data['inscriptions'] as &$ins) {
+                $ins['created_by'] = $operatorEmail;
+                // Forzar el ciclo inicial en nuevas inscripciones si no es un alta directa de otro ciclo
+                // (Para evitar que lo pongan en 1 sin tener legajo y sin haber pagado)
+                if (!isset($ins['academic_cycle']) || $ins['academic_cycle'] === '') {
+                    $ins['academic_cycle'] = '0';
+                }
+            }
+        }
+        
         if (empty($data['dni']) || empty($data['name']) || empty($data['lastname'])) {
             $response->getBody()->write(json_encode(['error' => 'Faltan campos obligatorios (DNI, Nombre, Apellido)']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
         
-        $success = $this->repository->create($data);
-        
-        if ($success) {
-            // Registrar auditoría de Alta
-            try {
-                $operatorEmail = $request->getHeaderLine('X-User-Email');
-                $auditRepo = new \App\Repositories\AuditLogRepositoryMySQL();
-                $auditRepo->logEvent(
-                    $operatorEmail,
-                    1, // Alta
-                    "Alta de Alumno: " . $data['lastname'] . ", " . $data['name'] . " (DNI: " . $data['dni'] . ")"
-                );
-            } catch (\Exception $e) {
-                error_log("Error al auditar creación de estudiante: " . $e->getMessage());
-            }
-
-            // Mandar Notificaciones por Mail para inscripciones iniciales
-            if (!empty($data['inscriptions']) && is_array($data['inscriptions'])) {
+        try {
+            $success = $this->repository->create($data);
+            
+            if ($success) {
+                // Registrar auditoría de Alta
                 try {
-                    $student = $this->repository->getById($success); // success returns the ID
-                    $careerRepo = new CareerRepositoryMySQL();
-                    foreach ($data['inscriptions'] as $ins) {
-                        $careerId = $ins['career_id'] ?? null;
-                        if ($careerId) {
-                            $career = $careerRepo->getById($careerId);
-                            if ($student && $career) {
-                                $notification = new CareerInscriptionNotification($student, $career, $ins);
-                                $notification->send();
+                    $operatorEmail = $request->getHeaderLine('X-User-Email');
+                    $auditRepo = new \App\Repositories\AuditLogRepositoryMySQL();
+                    $auditRepo->logEvent(
+                        $operatorEmail,
+                        1, // Alta
+                        "Alta de Alumno: " . $data['lastname'] . ", " . $data['name'] . " (DNI: " . $data['dni'] . ")"
+                    );
+                } catch (\Exception $e) {
+                    error_log("Error al auditar creación de estudiante: " . $e->getMessage());
+                }
+
+                // Mandar Notificaciones por Mail para inscripciones iniciales
+                if (!empty($data['inscriptions']) && is_array($data['inscriptions'])) {
+                    try {
+                        $student = $this->repository->getById($success); // success returns the ID
+                        $careerRepo = new CareerRepositoryMySQL();
+                        foreach ($data['inscriptions'] as $ins) {
+                            $careerId = $ins['career_id'] ?? null;
+                            if ($careerId) {
+                                $career = $careerRepo->getById($careerId);
+                                if ($student && $career) {
+                                    $notification = new CareerInscriptionNotification($student, $career, $ins);
+                                    $notification->send();
+                                }
                             }
                         }
+                    } catch (\Exception $e) {
+                        error_log("Error al enviar notificaciones de inscripción inicial: " . $e->getMessage());
                     }
-                } catch (\Exception $e) {
-                    error_log("Error al enviar notificaciones de inscripción inicial: " . $e->getMessage());
                 }
-            }
 
-            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Estudiante creado exitosamente']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+                $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Estudiante creado exitosamente']));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+            }
+            
+            $response->getBody()->write(json_encode(['error' => 'Error al guardar en la base de datos']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        } catch (\PDOException $e) {
+            $errorMsg = 'Error al guardar en la base de datos: ' . $e->getMessage();
+            if ($e->getCode() == 23000) { // Integrity constraint violation
+                $errorMsg = 'Ya existe un estudiante con ese DNI o hay un dato duplicado.';
+            }
+            $response->getBody()->write(json_encode(['error' => $errorMsg]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode(['error' => 'Error inesperado: ' . $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
-        
-        $response->getBody()->write(json_encode(['error' => 'Error al guardar en la base de datos']));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
     
     public function update(Request $request, Response $response, $args) {
@@ -155,6 +180,42 @@ class StudentController {
         try {
             // Obtener estado original antes de modificar
             $original = $this->repository->getById($id);
+            
+            // Validar avance de cuatrimestre 0
+            if (!empty($data['inscriptions']) && is_array($data['inscriptions'])) {
+                $originalInscriptions = [];
+                if (!empty($original['inscriptions'])) {
+                    foreach ($original['inscriptions'] as $oi) {
+                        $originalInscriptions[$oi['id']] = $oi;
+                    }
+                }
+
+                $hasPaidMatricula = false;
+                if (!empty($original['payments'])) {
+                    foreach ($original['payments'] as $payment) {
+                        if (stripos($payment['concept'], 'matrícula') !== false || stripos($payment['concept'], 'matricula') !== false) {
+                            if ($payment['status'] === 'Pagado') {
+                                $hasPaidMatricula = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                foreach ($data['inscriptions'] as $ins) {
+                    if (!empty($ins['id']) && isset($originalInscriptions[$ins['id']])) {
+                        $oldCycle = (string)$originalInscriptions[$ins['id']]['academic_cycle'];
+                        $newCycle = (string)$ins['academic_cycle'];
+                        
+                        if ($oldCycle === '0' && $newCycle !== '0' && $newCycle !== '') {
+                            if (!$hasPaidMatricula) {
+                                $response->getBody()->write(json_encode(['error' => 'No se puede avanzar el ciclo/cuatrimestre (desde 0 a ' . $newCycle . ') porque el alumno no registra una Matrícula pagada.']));
+                                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+                            }
+                        }
+                    }
+                }
+            }
             
             $success = $this->repository->update($id, $data);
             
@@ -273,6 +334,8 @@ class StudentController {
     public function inscribe(Request $request, Response $response, $args) {
         $studentId = $args['id'];
         $data = json_decode((string)$request->getBody(), true);
+        
+        $data['created_by'] = $request->getHeaderLine('X-User-Email');
         
         if (empty($data['career_id'])) {
             $response->getBody()->write(json_encode(['error' => 'Falta el ID de la carrera']));

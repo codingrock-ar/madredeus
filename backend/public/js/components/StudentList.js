@@ -81,6 +81,7 @@ export default {
                     <label class="form-label small fw-bold text-muted mb-1">Período</label>
                     <select class="form-select" v-model="filters.academic_cycle" @change="fetchStudents">
                         <option value="">Todos</option>
+                        <option value="0">Período 0</option>
                         <option v-for="n in 6" :key="n" :value="n">Período {{ n }}</option>
                         <option value="Egresó">Egresó</option>
                         <option value="Finalizó Cursada">Finalizó Cursada</option>

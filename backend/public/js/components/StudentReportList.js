@@ -33,6 +33,7 @@ export default {
                     <label class="form-label small fw-bold text-muted mb-1">Período</label>
                     <select class="form-select form-select-sm" v-model="filters.periodo" @change="fetchReport" @keyup.enter="fetchReport">
                         <option value="">Todos</option>
+                        <option value="0">0</option>
                         <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
                     </select>
                 </div>
