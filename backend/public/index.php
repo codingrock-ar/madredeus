@@ -46,6 +46,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) {
         $studentGroup->get('/export', \App\Controllers\StudentController::class . ':exportExcel');
         $studentGroup->get('/export-sinigep', \App\Controllers\StudentController::class . ':exportSinigepExcel');
         $studentGroup->get('/autocomplete', \App\Controllers\StudentController::class . ':autocomplete');
+        $studentGroup->get('/creators', \App\Controllers\StudentController::class . ':getCreators');
         $studentGroup->get('/{id}', \App\Controllers\StudentController::class . ':show');
         $studentGroup->post('', \App\Controllers\StudentController::class . ':create');
         $studentGroup->post('/bulk-commission', \App\Controllers\StudentController::class . ':bulkUpdateCommission');

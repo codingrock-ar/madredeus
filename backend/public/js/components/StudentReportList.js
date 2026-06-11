@@ -58,7 +58,7 @@ export default {
                         <option v-for="y in activeCycles" :key="y.id" :value="y.name">{{ y.name }}</option>
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">Estado</label>
                     <select class="form-select form-select-sm" v-model="filters.estado" @change="fetchReport" @keyup.enter="fetchReport">
                         <option value="">Todos</option>
@@ -66,6 +66,13 @@ export default {
                         <option value="Abandono">Abandono</option>
                         <option value="Egresado">Egresado</option>
                         <option value="Finalizó Cursada">Finalizó Cursada</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted mb-1">Inscripto por</label>
+                    <select class="form-select form-select-sm" v-model="filters.created_by" @change="fetchReport" @keyup.enter="fetchReport">
+                        <option value="">Todos</option>
+                        <option v-for="c in creators" :key="c" :value="c">{{ c }}</option>
                     </select>
                 </div>
             </div>
@@ -196,6 +203,7 @@ export default {
             commissions: ['A', 'B', 'C', 'D'],
             cycles: [],
             scholarships: [],
+            creators: [],
             filters: {
                 legajo: '',
                 lastname: '',
@@ -206,6 +214,7 @@ export default {
                 comision: '',
                 ciclo: '2024',
                 estado: '',
+                created_by: '',
                 deudores: false,
                 becados: false,
                 scholarship_id: ''
@@ -227,10 +236,11 @@ export default {
     methods: {
         async fetchMetadata() {
             try {
-                const [careersRes, cyclesRes, scholarshipsRes] = await Promise.all([
+                const [careersRes, cyclesRes, scholarshipsRes, creatorsRes] = await Promise.all([
                     fetch(window.API_BASE + '/api/careers'),
                     fetch(window.API_BASE + '/api/config/cycles'),
-                    fetch(window.API_BASE + '/api/config/scholarships')
+                    fetch(window.API_BASE + '/api/config/scholarships'),
+                    fetch(window.API_BASE + '/api/students/creators')
                 ]);
                 
                 const careers = await careersRes.json();
@@ -241,6 +251,9 @@ export default {
 
                 const scholarships = await scholarshipsRes.json();
                 if (scholarships.status === 'success') this.scholarships = scholarships.data;
+
+                const creators = await creatorsRes.json();
+                if (creators.status === 'success') this.creators = creators.data;
 
             } catch (error) {
                 console.error("Error fetching metadata:", error);
@@ -257,6 +270,7 @@ export default {
                 comision: '',
                 ciclo: '2024',
                 estado: '',
+                created_by: '',
                 deudores: false,
                 becados: false,
                 scholarship_id: ''

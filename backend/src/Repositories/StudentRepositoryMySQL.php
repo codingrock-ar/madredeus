@@ -106,6 +106,11 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
             $sqlParams[':sinigep_status'] = $params['sinigep_status'];
         }
 
+        if (!empty($params['created_by'])) {
+            $where[] = "(s.created_by = :created_by OR EXISTS (SELECT 1 FROM student_career_inscriptions sci_creator WHERE sci_creator.student_id = s.id AND sci_creator.created_by = :created_by))";
+            $sqlParams[':created_by'] = $params['created_by'];
+        }
+
         // Filtros de Inscripciones (Carrera, Comisión, Turno, Estado)
         // Se consolidan en un único EXISTS para que los filtros apliquen sobre la MISMA inscripción
         $insFilters = [];
@@ -750,5 +755,16 @@ class StudentRepositoryMySQL implements StudentRepositoryInterface {
         if (!$this->db) return false;
         $stmt = $this->db->prepare("UPDATE students SET last_notified_docs = CURRENT_TIMESTAMP WHERE id = :id");
         return $stmt->execute([':id' => $id]);
+    }
+
+    public function getCreators() {
+        if (!$this->db) return [];
+        $stmt = $this->db->query("
+            SELECT DISTINCT created_by FROM students WHERE created_by IS NOT NULL AND created_by != ''
+            UNION 
+            SELECT DISTINCT created_by FROM student_career_inscriptions WHERE created_by IS NOT NULL AND created_by != ''
+            ORDER BY created_by ASC
+        ");
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }

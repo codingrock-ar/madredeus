@@ -96,6 +96,13 @@ export default {
                         <option value="TN">Noche (TN)</option>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted mb-1">Inscripto por</label>
+                    <select class="form-select" v-model="filters.created_by" @change="fetchStudents">
+                        <option value="">Todos</option>
+                        <option v-for="c in creators" :key="c" :value="c">{{ c }}</option>
+                    </select>
+                </div>
                 <div class="col-md-3 d-flex align-items-end">
                     <div class="d-flex gap-2 w-100">
                         <div class="flex-grow-1">
@@ -224,6 +231,7 @@ export default {
         return {
             students: [],
             careers: [],
+            creators: [],
             loading: true,
             filters: {
                 search: '',
@@ -232,6 +240,7 @@ export default {
                 academic_cycle: '',
                 shift: '',
                 status: '',
+                created_by: '',
                 page: 1,
                 per_page: 10
             },
@@ -377,6 +386,7 @@ export default {
                     academic_cycle: this.filters.academic_cycle,
                     shift: this.filters.shift,
                     status: this.filters.status,
+                    created_by: this.filters.created_by,
                     page: this.filters.page,
                     per_page: this.filters.per_page
                 }).toString();
@@ -442,6 +452,17 @@ export default {
                 console.error("Error al cargar carreras:", error);
             }
         },
+        async fetchCreators() {
+            try {
+                const response = await fetch(window.API_BASE + '/api/students/creators');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    this.creators = result.data;
+                }
+            } catch (error) {
+                console.error("Error al cargar creadores:", error);
+            }
+        },
         initTooltips() {
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             this.tooltipInstances = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -483,6 +504,7 @@ export default {
                 academic_cycle: '',
                 shift: '',
                 status: '',
+                created_by: '',
                 page: 1,
                 per_page: 10
             };
@@ -502,6 +524,7 @@ export default {
         }
 
         await this.fetchCareers();
+        await this.fetchCreators();
         await this.fetchStudents();
         document.addEventListener('click', this.handleClickOutside);
     },

@@ -32,6 +32,7 @@ class StudentController {
             'status' => $queryParams['status'] ?? null,
             'gender' => $queryParams['gender'] ?? null,
             'sinigep_status' => $queryParams['sinigep_status'] ?? null,
+            'created_by' => $queryParams['created_by'] ?? null,
             'academic_cycle' => $queryParams['academic_cycle'] ?? null,
             'page' => $queryParams['page'] ?? 1,
             'per_page' => $queryParams['per_page'] ?? 10
@@ -202,7 +203,7 @@ class StudentController {
                 $hasPaidMatricula = false;
                 if (!empty($original['payments'])) {
                     foreach ($original['payments'] as $payment) {
-                        if (stripos($payment['concept'], 'matrícula') !== false || stripos($payment['concept'], 'matricula') !== false) {
+                        if (strpos($payment['concept'], 'Matrícula') !== false || strpos($payment['concept'], 'Matricula') !== false || stripos($payment['concept'], 'matrícula') !== false || stripos($payment['concept'], 'matricula') !== false) {
                             if ($payment['status'] === 'Pagado') {
                                 $hasPaidMatricula = true;
                                 break;
@@ -639,6 +640,16 @@ class StudentController {
             'status' => 'success', 
             'message' => 'Documento subido correctamente',
             'path' => $relativePath
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function getCreators(Request $request, Response $response, $args) {
+        $creators = $this->repository->getCreators();
+        
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'data' => $creators
         ]));
         return $response->withHeader('Content-Type', 'application/json');
     }
