@@ -431,12 +431,16 @@ export default {
                                                         <input class="form-check-input" type="checkbox" id="genMatricula" v-model="planConfig.include_matricula">
                                                         <label class="form-check-label fw-bold" for="genMatricula">Incluir Matrícula</label>
                                                     </div>
-                                                    <div v-if="planConfig.include_matricula" class="row g-2 ps-4">
-                                                        <div class="col-md-6">
+                                                    <div v-if="planConfig.include_matricula" class="row g-2 ps-4 mb-2">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label small">Ciclo Lectivo (Año)</label>
+                                                            <input type="number" class="form-control" v-model.number="planConfig.academic_cycle">
+                                                        </div>
+                                                        <div class="col-md-4">
                                                             <label class="form-label small">Monto Matrícula</label>
                                                             <input type="number" class="form-control" v-model.number="planConfig.matricula_amount">
                                                         </div>
-                                                        <div class="col-md-6">
+                                                        <div class="col-md-4">
                                                             <label class="form-label small">Vencimiento</label>
                                                             <input type="date" class="form-control" v-model="planConfig.matricula_due_date">
                                                         </div>
@@ -554,7 +558,8 @@ export default {
                 matricula_amount: 50000,
                 matricula_due_date: new Date().toISOString().split('T')[0],
                 start_cycle: 'Marzo',
-                quota_amount: 40000
+                quota_amount: 40000,
+                academic_cycle: new Date().getFullYear()
             },
             metadata: { payment_concepts: [], payment_types: [] }
         }
@@ -833,6 +838,14 @@ export default {
                             ${(this.metadata?.payment_concepts || []).map(c => `<option value="${c}"></option>`).join('')}
                         </datalist>
 
+                        ${!prefill ? `
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-primary">Ciclo Lectivo (Año)</label>
+                            <input type="number" id="swal-cycle" class="form-control form-control-sm border-primary" value="${new Date().getFullYear()}" placeholder="Ej: 2026">
+                            <div class="form-text extra-small">Útil al cobrar "Matrículas" manuales para asociarlas al año correcto.</div>
+                        </div>
+                        ` : ''}
+
                         <label class="form-label small fw-bold">Método</label>
                         <select id="swal-method" class="form-select form-select-sm mb-3">
                             <option value="Efectivo">Efectivo</option>
@@ -857,7 +870,9 @@ export default {
                         Swal.showValidationMessage('Por favor complete los campos obligatorios');
                         return false;
                     }
-                    return { student_id: this.student.id, amount, concept, payment_date, payment_method };
+                    const cycleInput = document.getElementById('swal-cycle');
+                    const details = cycleInput ? { academic_cycle: cycleInput.value } : null;
+                    return { student_id: this.student.id, amount, concept, payment_date, payment_method, details };
                 }
             });
 
@@ -969,7 +984,8 @@ export default {
                         type: 'Matrícula',
                         concept: 'Matrícula',
                         amount: this.planConfig.matricula_amount,
-                        due_date: this.planConfig.matricula_due_date
+                        due_date: this.planConfig.matricula_due_date,
+                        details: { academic_cycle: this.planConfig.academic_cycle }
                     });
                 }
 
@@ -986,7 +1002,8 @@ export default {
                         type: 'Cuota',
                         concept: `Cuota ${i + 1}`,
                         amount: this.planConfig.quota_amount,
-                        due_date: dueDate.toISOString().split('T')[0]
+                        due_date: dueDate.toISOString().split('T')[0],
+                        details: { academic_cycle: this.planConfig.academic_cycle }
                     });
                 }
 

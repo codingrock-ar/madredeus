@@ -176,6 +176,15 @@ class StudentController {
             $response->getBody()->write(json_encode(['error' => 'Faltan campos obligatorios (DNI, Nombre, Apellido)']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
+
+        $operatorEmail = $request->getHeaderLine('X-User-Email');
+        if (!empty($data['inscriptions']) && is_array($data['inscriptions'])) {
+            foreach ($data['inscriptions'] as &$ins) {
+                if (empty($ins['id'])) {
+                    $ins['created_by'] = $operatorEmail;
+                }
+            }
+        }
         
         try {
             // Obtener estado original antes de modificar

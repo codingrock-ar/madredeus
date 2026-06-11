@@ -204,7 +204,7 @@ class AuditLogRepositoryMySQL {
             $idUsuario = $this->resolveLegacyUserIdByEmail($email);
             
             // Limitamos a 255 caracteres por la estructura de columna de Bitacoras
-            $descripcionSafe = mb_strimwidth($descripcion, 0, 255, "...");
+            $descripcionSafe = strlen($descripcion) > 255 ? substr($descripcion, 0, 252) . "..." : $descripcion;
             
             $stmt = $this->db->prepare("
                 INSERT INTO Bitacoras (Descripcion, Fecha, IdUsuario, IdTipoEvento)

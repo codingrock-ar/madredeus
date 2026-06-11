@@ -87,22 +87,35 @@ class PromotionController {
                 $reasons[] = "Posee deudas administrativas";
             }
 
-            // Check matricula if advancing from period 0
-            if ($source['period'] === '0' && $target['period'] !== '0' && $target['period'] !== '') {
+            // Check matricula if not graduating
+            if ($target['period'] !== 'Egresó' && $target['period'] !== 'Finalizó Cursada' && $target['period'] !== '') {
                 $hasPaidMatricula = false;
+                $targetCycle = $data['target_academic_cycle'] ?? date('Y');
+                
                 $paymentsRes = $this->paymentRepository->getAll(['student_id' => $student['id']]);
                 if (!empty($paymentsRes['data'])) {
                     foreach ($paymentsRes['data'] as $payment) {
-                        if (stripos($payment['concept'], 'matrícula') !== false || stripos($payment['concept'], 'matricula') !== false) {
+                        if (stripos($payment['concept'], 'matrícula') !== false || stripos($payment['concept'], 'matricula') !== false || $payment['type'] === 'Matrícula') {
                             if ($payment['status'] === 'Pagado') {
-                                $hasPaidMatricula = true;
-                                break;
+                                // Validate cycle
+                                $paymentCycle = null;
+                                if (!empty($payment['details'])) {
+                                    $details = json_decode($payment['details'], true);
+                                    if (isset($details['academic_cycle'])) {
+                                        $paymentCycle = (string)$details['academic_cycle'];
+                                    }
+                                }
+                                
+                                if ($paymentCycle === (string)$targetCycle) {
+                                    $hasPaidMatricula = true;
+                                    break;
+                                }
                             }
                         }
                     }
                 }
                 if (!$hasPaidMatricula) {
-                    $reasons[] = "No registra una Matrícula pagada";
+                    $reasons[] = "No registra una Matrícula pagada para el ciclo {$targetCycle}";
                 }
             }
 

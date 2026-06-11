@@ -99,6 +99,11 @@ export default {
                                 </option>
                             </select>
                         </div>
+                        <div class="mb-3" v-if="target.period !== 'Egresó' && target.period !== 'Finalizó Cursada'">
+                            <label class="form-label small text-primary fw-bold">Ciclo Lectivo Destino (Año)</label>
+                            <input type="number" class="form-control form-control-sm border-primary" v-model.number="target.academic_cycle" :disabled="!target.period" placeholder="Ej: 2026">
+                            <div class="form-text extra-small">Año cronológico al que corresponde la matrícula que deben abonar.</div>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label small">Turno</label>
                             <select class="form-select form-select-sm" v-model="target.shift" @change="onTargetShiftChange" :disabled="!target.period">
@@ -236,7 +241,7 @@ export default {
             mappings: { career_shifts: {}, shift_commissions: {} },
             shared: { career: '' },
             source: { shift: '', commission: '', period: '' },
-            target: { shift: '', commission: '', period: '' },
+            target: { shift: '', commission: '', period: '', academic_cycle: new Date().getFullYear() },
             checks: { condicion: true, deudas: false },
             isProcessing: false,
             showResults: false,
@@ -417,6 +422,7 @@ export default {
                         target_shift: this.target.shift,
                         target_commission: this.target.commission,
                         target_period: this.target.period,
+                        target_academic_cycle: this.target.academic_cycle,
                         check_condicion: this.checks.condicion,
                         check_deudas: this.checks.deudas,
                         filters: this.filters
@@ -461,7 +467,8 @@ export default {
                         target_career: this.shared.career,
                         target_shift: this.target.shift,
                         target_commission: this.target.commission,
-                        target_period: this.target.period
+                        target_period: this.target.period,
+                        target_academic_cycle: this.target.academic_cycle
                     })
                 });
                 if (response.status === 401) return this.$router.push('/login');
